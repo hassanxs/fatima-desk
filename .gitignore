@@ -60,3 +60,7 @@ flutter/web/
 /third_party/libdrmtap/
 # Local git worktrees
 .worktrees/
+
+# Fatima Desk build output
+/dist/
+/branding/preview.png
