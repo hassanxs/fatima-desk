@@ -3,14 +3,19 @@
 # Builds fatimadesk.exe the same way RustDesk's CI does (flutter-build.yml,
 # x86_64 job). Run from this folder in PowerShell:
 #
-#   .\build-windows.ps1
+#   .\build-windows.ps1              # app folder only (fast, for development)
+#   .\build-windows.ps1 -Installer   # also the files to hand out
 #
 # Output: dist\FatimaDesk\fatimadesk.exe (run it from that folder; it needs
-# the DLLs and data folder next to it).
+# the DLLs and data folder next to it). With -Installer also:
+#   dist\fatimadesk-<version>-install.exe      single file: runs portable, can install
+#   dist\fatimadesk-<version>-windows-portable.zip   the app folder, zipped
 #
 # Toolchain (installed once): VS 2022 Build Tools (C++), Rust 1.75,
 # LLVM 15.0.6, Flutter 3.24.5 in D:\dev\flutter, vcpkg in D:\dev\vcpkg,
 # flutter_rust_bridge_codegen 1.80.1, cargo-expand 1.0.95.
+
+param([switch]$Installer)
 
 # 'Continue', not 'Stop': cargo and flutter print normal progress to stderr,
 # which Windows PowerShell 5.1 would turn into a terminating error. Failures
@@ -85,7 +90,19 @@ Step 'Generating Flutter <-> Rust bridge'
 Run flutter_rust_bridge_codegen --rust-input ./src/flutter_ffi.rs --dart-output ./flutter/lib/generated_bridge.dart
 
 Step 'Building Fatima Desk (Rust core + Flutter UI)'
-Run python build.py --portable --flutter --skip-portable-pack --hwcodec --vram
+if ($Installer) {
+    # build.py calls "python3", which on Windows is often only the Microsoft
+    # Store shortcut. Put a shim for the real Python first on PATH for this
+    # build only.
+    $shim = Join-Path $env:TEMP 'fatimadesk-python3-shim'
+    New-Item -ItemType Directory -Force $shim | Out-Null
+    $py = (Get-Command python -ErrorAction Stop).Source
+    Set-Content -Path "$shim\python3.cmd" -Value "@`"$py`" %*" -Encoding ascii
+    $env:Path = "$shim;$env:Path"
+    Run python build.py --portable --flutter --hwcodec --vram
+} else {
+    Run python build.py --portable --flutter --skip-portable-pack --hwcodec --vram
+}
 
 Step 'Copying to dist\FatimaDesk'
 $release = 'flutter\build\windows\x64\runner\Release'
@@ -93,3 +110,16 @@ if (Test-Path dist\FatimaDesk) { Remove-Item -Recurse -Force dist\FatimaDesk -Er
 New-Item -ItemType Directory -Force dist -ErrorAction Stop | Out-Null
 Copy-Item -Recurse $release dist\FatimaDesk -ErrorAction Stop
 Write-Host "`nDone: $Repo\dist\FatimaDesk\fatimadesk.exe" -ForegroundColor Green
+
+if ($Installer) {
+    $version = (Select-String -Path Cargo.toml -Pattern '^version = "([^"]+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
+    Step 'Collecting the files to hand out'
+    $exe = "fatimadesk-$version-install.exe"
+    if (-not (Test-Path $exe)) { throw "$exe was not produced by the portable packer" }
+    Move-Item -Force $exe "dist\$exe" -ErrorAction Stop
+    $zip = "dist\fatimadesk-$version-windows-portable.zip"
+    if (Test-Path $zip) { Remove-Item -Force $zip }
+    Compress-Archive -Path dist\FatimaDesk -DestinationPath $zip -ErrorAction Stop
+    Write-Host "Done: $Repo\dist\$exe" -ForegroundColor Green
+    Write-Host "Done: $Repo\$zip" -ForegroundColor Green
+}
