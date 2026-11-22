@@ -5,7 +5,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("connecting_status", "Connecting to the RustDesk network..."),
         ("not_ready_status", "Not ready. Please check your connection"),
         ("ID/Relay Server", "ID/Relay server"),
-        ("id_change_tip", "Only a-z, A-Z, 0-9, - (dash) and _ (underscore) characters allowed. The first letter must be a-z, A-Z, length between 6 and 16. Or use exactly 9 digits."),
+        ("id_change_tip", "Your ID is 9 digits and must not start with 0. To use a name, set an alias instead."),
         ("Slogan_tip", "Made with heart in this chaotic world!"),
         ("Build Date", "Build date"),
         ("Audio Input", "Audio input"),
@@ -292,5 +292,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("api_server_empty_tip", "With API Server empty, your custom server defaults to HTTP. Contact your administrator to enable HTTPS."),
         ("android-logs-folder-tip", "Choose Android → media to store log files."),
         ("install-directory-not-empty-tip", "The selected folder is not empty. Installation may delete existing data. Consider choosing a different folder."),
+        ("fd_alias_tip", "Your ID stays the same; the alias is a second name others can connect with. It must start with a letter, 6 to 16 characters (a-z, A-Z, 0-9, - and _). Leave it empty to remove it."),
+        ("fd_alias_home_tip", "Others can connect with this alias or with your ID"),
     ].iter().cloned().collect();
 }

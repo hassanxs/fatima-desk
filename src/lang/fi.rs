@@ -826,5 +826,10 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("install-directory-not-empty-tip", "Valittu kansio ei ole tyhjä. Asennus voi poistaa olemassa olevia tietoja. Harkitse toisen kansion valitsemista."),
         ("Request approval", "Pyydä hyväksyntää"),
         ("Forever", "Ikuisesti"),
+        ("Set alias", ""),
+        ("fd_alias_tip", ""),
+        ("fd_alias_home_tip", ""),
+        ("9 digits", ""),
+        ("not starting with 0", ""),
     ].iter().cloned().collect();
 }

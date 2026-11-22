@@ -535,6 +535,7 @@ impl RendezvousMediator {
         match msg {
             Some(rendezvous_message::Union::RegisterPeerResponse(rpr)) => {
                 update_latency();
+                crate::fatimadesk_alias::on_register_peer_response(&self.host, &rpr);
                 if rpr.request_pk {
                     log::info!("request_pk received from {}", self.host);
                     self.register_pk(sink).await?;

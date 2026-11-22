@@ -49,6 +49,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   var watchIsCanRecordAudio = false;
   Timer? _updateTimer;
   bool isCardClosed = false;
+  final RxString _fdAlias = ''.obs;
 
   final RxBool _editHover = false.obs;
   final RxBool _block = false.obs;
@@ -186,6 +187,35 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   buildIDBoard(BuildContext context) {
+    return Obx(() => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            buildIDBoard2(context),
+            if (_fdAlias.value.isNotEmpty)
+              GestureDetector(
+                onDoubleTap: () {
+                  Clipboard.setData(ClipboardData(text: _fdAlias.value));
+                  showToast(translate("Copied"));
+                },
+                child: Tooltip(
+                  message: translate('fd_alias_home_tip'),
+                  child: Text(
+                    '${translate('Alias')}: ${_fdAlias.value}',
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.color
+                            ?.withOpacity(0.7)),
+                  ),
+                ),
+              ).marginOnly(left: 29, bottom: 4),
+          ],
+        ));
+  }
+
+  buildIDBoard2(BuildContext context) {
     final model = gFFI.serverModel;
     return Container(
       margin: const EdgeInsets.only(left: 20, right: 11),
@@ -701,6 +731,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     super.initState();
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
+      _fdAlias.value = await bind.mainGetOption(key: kOptionFdAlias);
       final error = await bind.mainGetError();
       if (systemError != error) {
         systemError = error;

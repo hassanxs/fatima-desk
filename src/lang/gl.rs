@@ -826,5 +826,10 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("install-directory-not-empty-tip", "O cartafol seleccionado non está baleiro. A instalación pode eliminar os datos existentes. Considera escoller outro cartafol."),
         ("Request approval", "Solicitar aprobación"),
         ("Forever", "Para sempre"),
+        ("Set alias", ""),
+        ("fd_alias_tip", ""),
+        ("fd_alias_home_tip", ""),
+        ("9 digits", ""),
+        ("not starting with 0", ""),
     ].iter().cloned().collect();
 }

@@ -1001,6 +1001,15 @@ pub fn main_change_id(new_id: String) {
     change_id(new_id)
 }
 
+pub fn main_set_fd_alias(alias: String) {
+    crate::ui_interface::set_fd_alias(alias)
+}
+
+/// The numeric ID behind an alias, or "" when it is not one.
+pub fn main_resolve_fd_alias(alias: String) -> String {
+    crate::fatimadesk_alias::resolve_alias(alias)
+}
+
 pub fn main_get_async_status() -> String {
     get_async_job_status()
 }

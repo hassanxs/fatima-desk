@@ -77,10 +77,8 @@ void changeIdDialog() {
   final RxString rxId = controller.text.trim().obs;
 
   final rules = [
-    RegexValidationRule(
-        'starts with a letter, or 9 digits', RegExp(r'^(?:[a-zA-Z]|[0-9]{9}$)')),
-    LengthRangeValidationRule(6, 16),
-    RegexValidationRule('allowed characters', RegExp(r'^[\w-]*$'))
+    RegexValidationRule('9 digits', RegExp(r'^[0-9]{9}$')),
+    RegexValidationRule('not starting with 0', RegExp(r'^[1-9]')),
   ];
 
   gFFI.dialogManager.show((setState, close, context) {
@@ -135,11 +133,11 @@ void changeIdDialog() {
             decoration: InputDecoration(
                 labelText: translate('Your new ID'),
                 errorText: msg.isEmpty ? null : translate(msg),
-                suffixText: '${rxId.value.length}/16',
+                suffixText: '${rxId.value.length}/9',
                 suffixStyle: const TextStyle(fontSize: 12, color: Colors.grey)),
             inputFormatters: [
-              LengthLimitingTextInputFormatter(16),
-              // FilteringTextInputFormatter(RegExp(r"[a-zA-z][a-zA-z0-9\_]*"), allow: true)
+              LengthLimitingTextInputFormatter(9),
+              FilteringTextInputFormatter.digitsOnly,
             ],
             controller: controller,
             autofocus: true,
@@ -174,6 +172,113 @@ void changeIdDialog() {
                   )).marginOnly(bottom: 8)
               : SizedBox.shrink(),
           // NOT use Offstage to wrap LinearProgressIndicator
+          if (isInProgress) const LinearProgressIndicator(),
+        ],
+      ),
+      actions: [
+        dialogButton("Cancel", onPressed: close, isOutline: true),
+        dialogButton("OK", onPressed: submit),
+      ],
+      onSubmit: submit,
+      onCancel: close,
+    );
+  });
+}
+
+/// Fatima Desk: set or remove this device's alias. The numeric ID stays; the
+/// alias is a second name others can connect with.
+void setFdAliasDialog() async {
+  final current = await bind.mainGetOption(key: kOptionFdAlias);
+  var msg = "";
+  var isInProgress = false;
+  TextEditingController controller = TextEditingController(text: current);
+  final RxString rxAlias = current.obs;
+
+  final rules = [
+    RegexValidationRule('starts with a letter', RegExp(r'^[a-zA-Z]')),
+    LengthRangeValidationRule(6, 16),
+    RegexValidationRule('allowed characters', RegExp(r'^[\w-]*$'))
+  ];
+
+  gFFI.dialogManager.show((setState, close, context) {
+    submit() async {
+      final alias = controller.text.trim();
+      if (alias.isNotEmpty) {
+        final Iterable violations = rules.where((r) => !r.validate(alias));
+        if (violations.isNotEmpty) {
+          setState(() {
+            msg =
+                '${translate('Prompt')}:  ${violations.map((r) => r.name).join(', ')}';
+          });
+          return;
+        }
+      }
+      if (alias == current) {
+        close();
+        return;
+      }
+      setState(() {
+        msg = "";
+        isInProgress = true;
+        bind.mainSetFdAlias(alias: alias);
+      });
+      var status = await bind.mainGetAsyncStatus();
+      while (status == " ") {
+        await Future.delayed(const Duration(milliseconds: 100));
+        status = await bind.mainGetAsyncStatus();
+      }
+      if (status.isEmpty) {
+        close();
+        return;
+      }
+      setState(() {
+        isInProgress = false;
+        msg = '${translate('Prompt')}: ${translate(status)}';
+      });
+    }
+
+    return CustomAlertDialog(
+      title: Text(translate("Set alias")),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(translate("fd_alias_tip")),
+          const SizedBox(height: 12.0),
+          TextField(
+            decoration: InputDecoration(
+                labelText: translate('Alias'),
+                errorText: msg.isEmpty ? null : translate(msg),
+                suffixText: '${rxAlias.value.length}/16',
+                suffixStyle: const TextStyle(fontSize: 12, color: Colors.grey)),
+            inputFormatters: [LengthLimitingTextInputFormatter(16)],
+            controller: controller,
+            autofocus: true,
+            onChanged: (value) {
+              setState(() {
+                rxAlias.value = value.trim();
+                msg = '';
+              });
+            },
+          ).workaroundFreezeLinuxMint(),
+          const SizedBox(height: 8.0),
+          Obx(() => Wrap(
+                runSpacing: 8,
+                spacing: 4,
+                children: rules.map((e) {
+                  var checked = rxAlias.value.isEmpty || e.validate(rxAlias.value);
+                  return Chip(
+                      label: Text(
+                        e.name,
+                        style: TextStyle(
+                            color: checked
+                                ? const Color(0xFF0A9471)
+                                : Color.fromARGB(255, 198, 86, 157)),
+                      ),
+                      backgroundColor: checked
+                          ? const Color(0xFFD0F7ED)
+                          : Color.fromARGB(255, 247, 205, 232));
+                }).toList(),
+              )).marginOnly(bottom: 8),
           if (isInProgress) const LinearProgressIndicator(),
         ],
       ),

@@ -826,5 +826,10 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("install-directory-not-empty-tip", "Folder yang dipilih tidak kosong. Instalasi dapat menghapus data yang ada. Pertimbangkan untuk memilih folder lain."),
         ("Request approval", "Minta persetujuan"),
         ("Forever", "Selamanya"),
+        ("Set alias", ""),
+        ("fd_alias_tip", ""),
+        ("fd_alias_home_tip", ""),
+        ("9 digits", ""),
+        ("not starting with 0", ""),
     ].iter().cloned().collect();
 }

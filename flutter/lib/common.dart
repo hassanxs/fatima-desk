@@ -2627,6 +2627,12 @@ connect(BuildContext context, String id,
   final oldId = id;
   id = await bind.mainHandleRelayId(id: id);
   forceRelay = id != oldId || forceRelay;
+  // Fatima Desk: an alias is looked up on the server and the session uses
+  // the device's numeric ID. Anything else is dialed as typed.
+  if (!isWeb && RegExp(r'^[a-zA-Z][\w-]{5,15}$').hasMatch(id)) {
+    final resolved = await bind.mainResolveFdAlias(alias: id);
+    if (resolved.isNotEmpty) id = resolved;
+  }
   assert(!(isFileTransfer && isTcpTunneling && isRDP),
       "more than one connect type");
 

@@ -826,5 +826,10 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("install-directory-not-empty-tip", "Izabrani direktorijum nije prazan. Instalacija može da obriše postojeće podatke. Razmislite o izboru drugog direktorijuma."),
         ("Request approval", "Zatraži odobrenje"),
         ("Forever", "Zauvek"),
+        ("Set alias", ""),
+        ("fd_alias_tip", ""),
+        ("fd_alias_home_tip", ""),
+        ("9 digits", ""),
+        ("not starting with 0", ""),
     ].iter().cloned().collect();
 }

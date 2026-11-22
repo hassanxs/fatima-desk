@@ -131,6 +131,9 @@ const String kOptionEnablePrivacyMode = "enable-privacy-mode";
 /// TCP-only registration (Disable UDP) or TLS (insecure TLS fallback), so
 /// those settings are hidden.
 const bool kFatimaDeskOssServer = true;
+
+/// Fatima Desk: this device's alias, kept in step with the server.
+const String kOptionFdAlias = "fd-alias";
 const String kOptionEnablePermChangeInAcceptWindow =
     "enable-perm-change-in-accept-window";
 const String kOptionHideElevateButtonInAcceptWindow =

@@ -826,5 +826,10 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("install-directory-not-empty-tip", "Der ausgewählte Ordner ist nicht leer. Bei der Installation können vorhandene Daten gelöscht werden. Erwägen Sie, einen anderen Ordner auszuwählen."),
         ("Request approval", "Genehmigung anfordern"),
         ("Forever", "Für immer"),
+        ("Set alias", ""),
+        ("fd_alias_tip", ""),
+        ("fd_alias_home_tip", ""),
+        ("9 digits", ""),
+        ("not starting with 0", ""),
     ].iter().cloned().collect();
 }

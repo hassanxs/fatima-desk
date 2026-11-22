@@ -1427,6 +1427,14 @@ fn get_cm() -> bool {
 }
 
 pub fn is_login_wayland() -> bool {
+    // Fatima Desk: GDM's config only matters when GDM is the display manager
+    // (Linux Mint, for one, runs LightDM's X11 login screen with gdm3 merely
+    // installed, and its stock custom.conf would read as a Wayland login).
+    if let Ok(dm) = std::fs::read_to_string("/etc/X11/default-display-manager") {
+        if !dm.contains("gdm") {
+            return false;
+        }
+    }
     // Debian's gdm3 reads /etc/gdm3/daemon.conf instead of custom.conf.
     let files = [
         "/etc/gdm3/custom.conf",

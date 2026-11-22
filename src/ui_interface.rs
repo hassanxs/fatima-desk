@@ -905,6 +905,20 @@ pub fn change_id(id: String) {
     });
 }
 
+#[cfg(any(target_os = "android", target_os = "ios", feature = "flutter"))]
+pub fn set_fd_alias(alias: String) {
+    reset_async_job_status();
+    let id = get_id();
+    std::thread::spawn(move || {
+        let res = crate::fatimadesk_alias::set_alias(id, alias.clone());
+        if res.is_empty() {
+            // Shown at once; the device's next registration confirms it.
+            set_option(crate::fatimadesk_alias::OPTION_ALIAS.to_owned(), alias);
+        }
+        *ASYNC_JOB_STATUS.lock().unwrap() = res;
+    });
+}
+
 #[inline]
 pub fn http_request(url: String, method: String, body: Option<String>, header: String) {
     // Respond to concurrent requests for resources
@@ -1609,7 +1623,7 @@ pub async fn change_id_shared_(id: String, old_id: String) -> &'static str {
     err
 }
 
-async fn check_id(
+pub(crate) async fn check_id(
     rendezvous_server: String,
     old_id: String,
     id: String,

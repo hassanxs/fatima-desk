@@ -826,5 +826,10 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("install-directory-not-empty-tip", "De geselecteerde map is niet leeg. De installatie kan bestaande gegevens verwijderen. Overweeg een andere map te kiezen."),
         ("Request approval", "Goedkeuring aanvragen"),
         ("Forever", "Voor altijd"),
+        ("Set alias", ""),
+        ("fd_alias_tip", ""),
+        ("fd_alias_home_tip", ""),
+        ("9 digits", ""),
+        ("not starting with 0", ""),
     ].iter().cloned().collect();
 }

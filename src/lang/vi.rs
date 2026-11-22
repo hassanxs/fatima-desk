@@ -826,5 +826,10 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("install-directory-not-empty-tip", "Thư mục đã chọn không trống. Quá trình cài đặt có thể xóa dữ liệu hiện có. Hãy cân nhắc chọn một thư mục khác."),
         ("Request approval", "Yêu cầu phê duyệt"),
         ("Forever", "Vĩnh viễn"),
+        ("Set alias", ""),
+        ("fd_alias_tip", ""),
+        ("fd_alias_home_tip", ""),
+        ("9 digits", ""),
+        ("not starting with 0", ""),
     ].iter().cloned().collect();
 }
