@@ -10,6 +10,9 @@
 # the DLLs and data folder next to it). With -Installer also:
 #   dist\fatimadesk-<version>-install.exe      single file: runs portable, can install
 #   dist\fatimadesk-<version>-windows-portable.zip   the app folder, zipped
+#   dist\fatimadesk-<version>-x64.msi           standard Windows installer
+#
+# The MSI step also needs nuget.exe in D:\dev\nuget (WiX v4 comes from NuGet).
 #
 # Toolchain (installed once): VS 2022 Build Tools (C++), Rust 1.75,
 # LLVM 15.0.6, Flutter 3.24.5 in D:\dev\flutter, vcpkg in D:\dev\vcpkg,
@@ -120,6 +123,47 @@ if ($Installer) {
     $zip = "dist\fatimadesk-$version-windows-portable.zip"
     if (Test-Path $zip) { Remove-Item -Force $zip }
     Compress-Archive -Path dist\FatimaDesk -DestinationPath $zip -ErrorAction Stop
+
+    # ---- MSI (RustDesk's WiX v4 project in res\msi) ---------------------
+    # preprocess.py rewrites the project in place, so build from a copy and
+    # keep res\msi untouched.
+    Step 'Building the MSI installer'
+    $msbuild = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe'
+    $nuget = 'D:\dev\nuget\nuget.exe'
+    # Same layout as res\ (the project reads ..\icon.ico), in a folder whose
+    # path has no spaces: preprocess.py runs the app through an unquoted shell
+    # command, which breaks on paths like "D:\Projects\Fatima Desk".
+    $workRoot = Join-Path $env:TEMP 'fatimadesk-msi'
+    if ($workRoot -match ' ') { throw "MSI build folder path must not contain spaces: $workRoot" }
+    $work = Join-Path $workRoot 'msi'
+    if (Test-Path $workRoot) { Remove-Item -Recurse -Force $workRoot -ErrorAction Stop }
+    New-Item -ItemType Directory -Force $workRoot | Out-Null
+    Copy-Item -Recurse res\msi $work -ErrorAction Stop
+    Copy-Item res\icon.ico (Join-Path $workRoot 'icon.ico') -ErrorAction Stop
+    Copy-Item -Recurse dist\FatimaDesk (Join-Path $workRoot 'FatimaDesk') -ErrorAction Stop
+    # Add/Remove Programs links: Fatima Desk's repo instead of RustDesk's.
+    $pre = Join-Path $work 'preprocess.py'
+    (Get-Content $pre -Raw) -replace 'https://github.com/rustdesk/rustdesk(/issues/)?', 'https://github.com/hassanxs/fatima-desk' |
+        Set-Content $pre -Encoding utf8 -NoNewline
+    Push-Location $work
+    try {
+        Run python preprocess.py -d ..\FatimaDesk --app-name FatimaDesk -m 'Hassan Latif'
+        # RustDesk's own license terms would only get their names swapped by
+        # preprocess.py; show Fatima Desk's AGPL notice instead.
+        Copy-Item -Force (Join-Path $Repo 'branding\msi-license.rtf') 'Package\License.rtf' -ErrorAction Stop
+        Run $nuget restore msi.sln
+        # Quoted /p: switches: PowerShell splits a bare "-p:Name=Value" in two.
+        Run $msbuild msi.sln '/p:Configuration=Release' '/p:Platform=x64' '/p:TargetVersion=Windows10' '/v:minimal'
+        $built = Get-ChildItem 'Package\bin\*\Release\en-us\Package.msi' | Select-Object -First 1
+        if (-not $built) { throw 'Package.msi was not produced' }
+        $msi = "fatimadesk-$version-x64.msi"
+        Move-Item -Force $built.FullName (Join-Path $Repo "dist\$msi") -ErrorAction Stop
+    } finally {
+        Pop-Location
+    }
+    Remove-Item -Recurse -Force $workRoot -ErrorAction SilentlyContinue
+
     Write-Host "Done: $Repo\dist\$exe" -ForegroundColor Green
     Write-Host "Done: $Repo\$zip" -ForegroundColor Green
+    Write-Host "Done: $Repo\dist\$msi" -ForegroundColor Green
 }
