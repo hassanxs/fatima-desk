@@ -805,7 +805,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                       });
                     },
             ),
-          if (!_isUsingPublicServer)
+          if (!_isUsingPublicServer && !kFatimaDeskOssServer)
             SettingsTile.switchTile(
               title: Text(translate('Allow insecure TLS fallback')),
               initialValue: _allowInsecureTlsFallback,
@@ -821,7 +821,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                       });
                     },
             ),
-          if (isAndroid && !outgoingOnly && !_isUsingPublicServer)
+          if (isAndroid && !outgoingOnly && !_isUsingPublicServer && !kFatimaDeskOssServer)
             SettingsTile.switchTile(
               title: Text(translate('Disable UDP')),
               initialValue: _disableUdp,
@@ -1096,12 +1096,6 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                   child: Text(_myId),
                 ),
                 leading: Icon(Icons.perm_identity)),
-            SettingsTile(
-              title: Text(translate("Privacy Statement")),
-              onPressed: (context) =>
-                  launchUrlString('https://rustdesk.com/privacy.html'),
-              leading: Icon(Icons.privacy_tip),
-            )
           ],
         ),
       ],
@@ -1210,18 +1204,9 @@ void showAbout(OverlayDialogManager dialogManager) {
       title: Text(translate('About RustDesk')),
       content: Wrap(direction: Axis.vertical, spacing: 12, children: [
         Text('Version: $version'),
-        InkWell(
-            onTap: () async {
-              const url = 'https://rustdesk.com/';
-              await launchUrl(Uri.parse(url));
-            },
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('rustdesk.com',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                  )),
-            )),
+        Text('Copyright © ${DateTime.now().year} Hassan Latif.'),
+        Text('Made with heart in Pakistan!',
+            style: TextStyle(fontWeight: FontWeight.w800)),
       ]),
       actions: [],
     );

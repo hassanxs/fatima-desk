@@ -1308,7 +1308,8 @@ fn get_api_server_(api: String, custom: String) -> String {
             return format!("http://{}", s);
         }
     }
-    "https://admin.rustdesk.com".to_owned()
+    // Fatima Desk: never fall back to RustDesk's account server.
+    String::new()
 }
 
 #[inline]
@@ -2457,7 +2458,9 @@ pub fn create_symmetric_key_msg(their_pk_b: [u8; 32]) -> (Bytes, Bytes, secretbo
 
 #[inline]
 pub fn using_public_server() -> bool {
+    // Fatima Desk: the built-in server is our own, not RustDesk's shared one.
     crate::get_custom_rendezvous_server(get_option("custom-rendezvous-server")).is_empty()
+        && config::RENDEZVOUS_SERVERS.iter().any(|s| is_public(s))
 }
 
 pub struct ThrottledInterval {

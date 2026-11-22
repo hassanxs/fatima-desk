@@ -126,6 +126,11 @@ const String kOptionEnableTunnel = "enable-tunnel";
 const String kOptionEnableRemoteRestart = "enable-remote-restart";
 const String kOptionEnableBlockInput = "enable-block-input";
 const String kOptionEnablePrivacyMode = "enable-privacy-mode";
+
+/// Fatima Desk uses the open-source RustDesk server, which doesn't support
+/// TCP-only registration (Disable UDP) or TLS (insecure TLS fallback), so
+/// those settings are hidden.
+const bool kFatimaDeskOssServer = true;
 const String kOptionEnablePermChangeInAcceptWindow =
     "enable-perm-change-in-accept-window";
 const String kOptionHideElevateButtonInAcceptWindow =
