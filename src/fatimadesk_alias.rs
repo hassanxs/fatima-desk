@@ -21,6 +21,16 @@ lazy_static::lazy_static! {
     static ref LAST_ASSIGN_ATTEMPT: Mutex<Option<Instant>> = Default::default();
 }
 
+/// Aliases are shown as "name@fd"; the suffix is not part of the alias.
+pub fn strip_fd_suffix(alias: &str) -> &str {
+    let n = alias.len();
+    if n > 3 && alias.is_char_boundary(n - 3) && alias[n - 3..].eq_ignore_ascii_case("@fd") {
+        &alias[..n - 3]
+    } else {
+        alias
+    }
+}
+
 fn device_uuid() -> Bytes {
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     return Bytes::from(
@@ -56,6 +66,7 @@ async fn request(server: &str, msg: RendezvousMessage) -> Option<RendezvousMessa
 /// alias on this server (the caller then dials it as it is).
 #[tokio::main(flavor = "current_thread")]
 pub async fn resolve_alias(alias: String) -> String {
+    let alias = strip_fd_suffix(&alias).to_owned();
     if !hbb_common::is_valid_fd_alias(&alias) {
         return String::new();
     }
@@ -77,6 +88,7 @@ pub async fn resolve_alias(alias: String) -> String {
 /// success, otherwise the text the UI shows.
 #[tokio::main(flavor = "current_thread")]
 pub async fn set_alias(id: String, alias: String) -> String {
+    let alias = strip_fd_suffix(&alias).to_owned();
     if !alias.is_empty() && !hbb_common::is_valid_fd_alias(&alias) {
         return "Invalid format".to_owned();
     }
@@ -102,6 +114,7 @@ pub async fn set_alias(id: String, alias: String) -> String {
             Ok(TOO_FREQUENT) => "Too frequent".to_owned(),
             Ok(INVALID_FORMAT) => "Invalid format".to_owned(),
             Ok(SERVER_ERROR) => "Server error".to_owned(),
+            Ok(NOT_ALLOWED) => "fd_alias_locked".to_owned(),
             _ => "Unknown error".to_owned(),
         },
         None => "Failed to connect to rendezvous server".to_owned(),

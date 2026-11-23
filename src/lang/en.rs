@@ -5,7 +5,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("connecting_status", "Connecting to the RustDesk network..."),
         ("not_ready_status", "Not ready. Please check your connection"),
         ("ID/Relay Server", "ID/Relay server"),
-        ("id_change_tip", "Your ID is 9 digits and must not start with 0. To use a name, set an alias instead."),
+        ("id_change_tip", "Your ID is 9 digits and is assigned by the server admin."),
         ("Slogan_tip", "Made with heart in this chaotic world!"),
         ("Build Date", "Build date"),
         ("Audio Input", "Audio input"),
@@ -292,7 +292,8 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("api_server_empty_tip", "With API Server empty, your custom server defaults to HTTP. Contact your administrator to enable HTTPS."),
         ("android-logs-folder-tip", "Choose Android → media to store log files."),
         ("install-directory-not-empty-tip", "The selected folder is not empty. Installation may delete existing data. Consider choosing a different folder."),
-        ("fd_alias_tip", "Your ID stays the same; the alias is a second name others can connect with. It must start with a letter, 6 to 16 characters (a-z, A-Z, 0-9, - and _). Leave it empty to remove it."),
+        ("fd_alias_tip", "Your ID stays the same; the alias is a second name others can connect with, shown as name@fd. It must start with a letter, 4 to 16 characters (a-z, A-Z, 0-9, - and _). You can set it once; after that only the server admin can change it."),
         ("fd_alias_home_tip", "Others can connect with this alias or with your ID"),
+        ("fd_alias_locked", "Your alias is set. Only the server admin can change it."),
     ].iter().cloned().collect();
 }

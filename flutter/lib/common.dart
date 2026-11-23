@@ -2629,7 +2629,11 @@ connect(BuildContext context, String id,
   forceRelay = id != oldId || forceRelay;
   // Fatima Desk: an alias is looked up on the server and the session uses
   // the device's numeric ID. Anything else is dialed as typed.
-  if (!isWeb && RegExp(r'^[a-zA-Z][\w-]{5,15}$').hasMatch(id)) {
+  // "name@fd" is how aliases are shown; the suffix is not part of the alias.
+  if (!isWeb && RegExp(r'^[a-zA-Z][\w-]{3,15}@fd$', caseSensitive: false).hasMatch(id)) {
+    id = id.substring(0, id.length - 3);
+  }
+  if (!isWeb && RegExp(r'^[a-zA-Z][\w-]{3,15}$').hasMatch(id)) {
     final resolved = await bind.mainResolveFdAlias(alias: id);
     if (resolved.isNotEmpty) id = resolved;
   }

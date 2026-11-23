@@ -1041,7 +1041,8 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
                 password(context),
                 _Card(title: '2FA', children: [tfa()]),
                 if (!isChangeIdDisabled())
-                  _Card(title: 'ID', children: [changeId(), setFdAlias()]),
+                  // Fatima Desk: IDs are changed only by the server admin.
+                  _Card(title: 'ID', children: [setFdAlias()]),
                 more(context),
               ]),
             ),
@@ -1202,8 +1203,12 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
     return ChangeNotifierProvider.value(
         value: gFFI.serverModel,
         child: Consumer<ServerModel>(builder: ((context, model, child) {
+          // A device picks its alias once; after that only the admin can
+          // change it in the Console.
+          final alias = bind.mainGetOptionSync(key: kOptionFdAlias);
           return _Button('Set alias', setFdAliasDialog,
-              enabled: !locked && model.connectStatus > 0);
+              enabled: !locked && model.connectStatus > 0 && alias.isEmpty,
+              tip: alias.isEmpty ? null : 'fd_alias_locked');
         })));
   }
 

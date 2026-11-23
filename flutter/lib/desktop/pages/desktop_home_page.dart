@@ -194,13 +194,13 @@ class _DesktopHomePageState extends State<DesktopHomePage>
             if (_fdAlias.value.isNotEmpty)
               GestureDetector(
                 onDoubleTap: () {
-                  Clipboard.setData(ClipboardData(text: _fdAlias.value));
+                  Clipboard.setData(ClipboardData(text: '${_fdAlias.value}@fd'));
                   showToast(translate("Copied"));
                 },
                 child: Tooltip(
                   message: translate('fd_alias_home_tip'),
                   child: Text(
-                    '${translate('Alias')}: ${_fdAlias.value}',
+                    '${translate('Alias')}: ${_fdAlias.value}@fd',
                     style: TextStyle(
                         fontSize: 14,
                         color: Theme.of(context)

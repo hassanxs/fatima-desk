@@ -831,5 +831,6 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("fd_alias_home_tip", ""),
         ("9 digits", ""),
         ("not starting with 0", ""),
+        ("fd_alias_locked", ""),
     ].iter().cloned().collect();
 }

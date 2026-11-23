@@ -196,23 +196,26 @@ void setFdAliasDialog() async {
 
   final rules = [
     RegexValidationRule('starts with a letter', RegExp(r'^[a-zA-Z]')),
-    LengthRangeValidationRule(6, 16),
+    LengthRangeValidationRule(4, 16),
     RegexValidationRule('allowed characters', RegExp(r'^[\w-]*$'))
   ];
 
   gFFI.dialogManager.show((setState, close, context) {
     submit() async {
-      final alias = controller.text.trim();
-      if (alias.isNotEmpty) {
-        final Iterable violations = rules.where((r) => !r.validate(alias));
-        if (violations.isNotEmpty) {
-          setState(() {
-            msg = (isDesktop || isWebDesktop)
-                ? '${translate('Prompt')}:  ${violations.map((r) => r.name).join(', ')}'
-                : violations.map((r) => r.name).join(', ');
-          });
-          return;
-        }
+      // Shown as "name@fd"; the suffix is not part of the alias. A device
+      // sets its alias once, so an empty alias is not accepted here.
+      var alias = controller.text.trim();
+      if (alias.toLowerCase().endsWith('@fd')) {
+        alias = alias.substring(0, alias.length - 3);
+      }
+      final Iterable violations = rules.where((r) => !r.validate(alias));
+      if (violations.isNotEmpty) {
+        setState(() {
+          msg = (isDesktop || isWebDesktop)
+              ? '${translate('Prompt')}:  ${violations.map((r) => r.name).join(', ')}'
+              : violations.map((r) => r.name).join(', ');
+        });
+        return;
       }
       if (alias == current) {
         close();
@@ -251,7 +254,7 @@ void setFdAliasDialog() async {
             decoration: InputDecoration(
                 labelText: translate('Alias'),
                 errorText: msg.isEmpty ? null : translate(msg),
-                suffixText: '${rxAlias.value.length}/16',
+                suffixText: '@fd  ${rxAlias.value.length}/16',
                 suffixStyle: const TextStyle(fontSize: 12, color: Colors.grey)),
             inputFormatters: [LengthLimitingTextInputFormatter(16)],
             controller: controller,
