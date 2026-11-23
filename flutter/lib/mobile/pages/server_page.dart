@@ -222,7 +222,7 @@ class _ServerPageState extends State<ServerPage> {
                       children: [
                         buildPresetPasswordWarningMobile(),
                         // Fatima Desk: the ID is shown even while sharing
-                        // is off, like AnyDesk.
+                        // is off.
                         if (!gFFI.serverModel.isStart)
                           ServiceNotRunningNotification(),
                         ServerInfo(),
@@ -260,9 +260,15 @@ class ServiceNotRunningNotification extends StatelessWidget {
                 .marginOnly(bottom: 8),
             ElevatedButton.icon(
                 icon: const Icon(Icons.play_arrow),
-                // Fatima Desk: start straight away, without RustDesk's
-                // scam warning and confirmation dialogs.
-                onPressed: () => serverModel.fdStartNow(),
+                onPressed: () {
+                  if (gFFI.userModel.userName.value.isEmpty &&
+                      bind.mainGetLocalOption(key: "show-scam-warning") !=
+                          "N") {
+                    showScamWarning(context, serverModel);
+                  } else {
+                    serverModel.toggleService();
+                  }
+                },
                 label: Text(translate("Start service")))
           ],
         ));
@@ -706,8 +712,10 @@ class _PermissionCheckerState extends State<PermissionChecker> {
             PermissionRow(
                 translate("Screen Capture"),
                 serverModel.mediaOk,
-                !serverModel.mediaOk
-                    ? () => serverModel.fdStartNow()
+                !serverModel.mediaOk &&
+                        gFFI.userModel.userName.value.isEmpty &&
+                        bind.mainGetLocalOption(key: "show-scam-warning") != "N"
+                    ? () => showScamWarning(context, serverModel)
                     : serverModel.toggleService),
           PermissionRow(
             translate("Input Control"),

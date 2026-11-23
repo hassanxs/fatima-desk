@@ -376,52 +376,6 @@ class ServerModel with ChangeNotifier {
   }
 
   /// Toggle the screen sharing service.
-  static bool _fdAutoStartTried = false;
-
-  /// Fatima Desk: start sharing as soon as the app opens, like AnyDesk, so
-  /// the device is online without tapping "Start service". Runs once per app
-  /// launch. The first time, it also sets up start on boot (battery
-  /// exemption and "display over other apps") and offers remote input.
-  Future<void> fdAutoStart() async {
-    if (!isAndroid || _fdAutoStartTried) return;
-    _fdAutoStartTried = true;
-    final firstRun =
-        bind.mainGetLocalOption(key: kOptionFdMobileSetupDone) != 'Y';
-    if (firstRun) {
-      await bind.mainSetLocalOption(key: kOptionFdMobileSetupDone, value: 'Y');
-      await checkRequestNotificationPermission();
-      var canBoot = true;
-      if (!await AndroidPermissionManager.check(
-          kRequestIgnoreBatteryOptimizations)) {
-        canBoot = await AndroidPermissionManager.request(
-            kRequestIgnoreBatteryOptimizations);
-      }
-      if (!await AndroidPermissionManager.check(kSystemAlertWindow)) {
-        canBoot =
-            await AndroidPermissionManager.request(kSystemAlertWindow) &&
-                canBoot;
-      }
-      if (canBoot) {
-        await parent.target
-            ?.invokeMethod(AndroidChannel.kSetStartOnBootOpt, true);
-      }
-    }
-    if (!_isStart) {
-      await fdStartNow();
-    }
-    if (firstRun && !_inputOk && parent.target != null) {
-      showInputWarnAlert(parent.target!);
-    }
-  }
-
-  /// Fatima Desk: start sharing without RustDesk's warning dialogs. Android
-  /// still shows its own screen-capture prompt.
-  Future<void> fdStartNow() async {
-    if (_isStart) return;
-    await checkRequestNotificationPermission();
-    await startService();
-  }
-
   toggleService() async {
     if (_isStart) {
       final res = await parent.target?.dialogManager
