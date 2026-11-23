@@ -2,6 +2,7 @@
   <img src="res/logo-header.svg" alt="Fatima Desk" height="96"><br>
   <b>Fatima Desk</b> — remote desktop for Windows, macOS, Linux and Android<br>
   <a href="#download">Download</a> •
+  <a href="https://hassanxs.github.io/fatima-desk/">User guide</a> •
   <a href="#features">Features</a> •
   <a href="#install">Install</a> •
   <a href="#server">Server</a> •
@@ -54,7 +55,8 @@ All files are on the [latest release](https://github.com/hassanxs/fatima-desk/re
 ## Install
 
 Step-by-step instructions for installing, connecting, aliases, Android and
-troubleshooting are in the [user guide](docs/USER-GUIDE.md).
+troubleshooting are in the [user guide](https://hassanxs.github.io/fatima-desk/)
+(also as [Markdown](docs/USER-GUIDE.md)).
 
 - **Windows:** run the MSI. Windows SmartScreen or some antivirus programs may
   warn because the app isn't code-signed yet; choose *More info → Run anyway*.
