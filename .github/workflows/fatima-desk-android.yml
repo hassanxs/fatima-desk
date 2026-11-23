@@ -35,7 +35,7 @@ on:
       firebase_groups:
         description: "Firebase App Distribution tester groups (comma-separated; empty = don't send)"
         type: string
-        default: "family"
+        default: "private"
       release_notes:
         description: "Release notes shown to testers"
         type: string
