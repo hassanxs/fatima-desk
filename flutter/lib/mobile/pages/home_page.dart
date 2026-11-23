@@ -26,6 +26,9 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   var _selectedIndex = 0;
+  // Fatima Desk: the tab the app opens on and Back returns to. On Android
+  // this is Share screen, so the device's ID is the first thing shown.
+  var _homeIndex = 0;
   int get selectedIndex => _selectedIndex;
   final List<PageShape> _pages = [];
   int _chatPageTabIndex = -1;
@@ -43,10 +46,17 @@ class HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     initPages();
+    _selectedIndex = _homeIndex;
+    if (isAndroid && !bind.isOutgoingOnly()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        gFFI.serverModel.fdAutoStart();
+      });
+    }
   }
 
   void initPages() {
     _pages.clear();
+    _homeIndex = 0;
     if (!bind.isIncomingOnly()) {
       _pages.add(ConnectionPage(
         appBarActions: [],
@@ -55,6 +65,7 @@ class HomePageState extends State<HomePage> {
     if (isAndroid && !bind.isOutgoingOnly()) {
       _chatPageTabIndex = _pages.length;
       _pages.addAll([ChatPage(type: ChatPageType.mobileMain), ServerPage()]);
+      _homeIndex = _pages.length - 1;
     }
     _pages.add(SettingsPage());
   }
@@ -63,9 +74,9 @@ class HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return WillPopScope(
         onWillPop: () async {
-          if (_selectedIndex != 0) {
+          if (_selectedIndex != _homeIndex) {
             setState(() {
-              _selectedIndex = 0;
+              _selectedIndex = _homeIndex;
             });
           } else {
             return true;

@@ -221,9 +221,11 @@ class _ServerPageState extends State<ServerPage> {
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         buildPresetPasswordWarningMobile(),
-                        gFFI.serverModel.isStart
-                            ? ServerInfo()
-                            : ServiceNotRunningNotification(),
+                        // Fatima Desk: the ID is shown even while sharing
+                        // is off, like AnyDesk.
+                        if (!gFFI.serverModel.isStart)
+                          ServiceNotRunningNotification(),
+                        ServerInfo(),
                         const ConnectionManager(),
                         const PermissionChecker(),
                         SizedBox.fromSize(size: const Size(0, 15.0)),
@@ -258,15 +260,9 @@ class ServiceNotRunningNotification extends StatelessWidget {
                 .marginOnly(bottom: 8),
             ElevatedButton.icon(
                 icon: const Icon(Icons.play_arrow),
-                onPressed: () {
-                  if (gFFI.userModel.userName.value.isEmpty &&
-                      bind.mainGetLocalOption(key: "show-scam-warning") !=
-                          "N") {
-                    showScamWarning(context, serverModel);
-                  } else {
-                    serverModel.toggleService();
-                  }
-                },
+                // Fatima Desk: start straight away, without RustDesk's
+                // scam warning and confirmation dialogs.
+                onPressed: () => serverModel.fdStartNow(),
                 label: Text(translate("Start service")))
           ],
         ));
@@ -710,10 +706,8 @@ class _PermissionCheckerState extends State<PermissionChecker> {
             PermissionRow(
                 translate("Screen Capture"),
                 serverModel.mediaOk,
-                !serverModel.mediaOk &&
-                        gFFI.userModel.userName.value.isEmpty &&
-                        bind.mainGetLocalOption(key: "show-scam-warning") != "N"
-                    ? () => showScamWarning(context, serverModel)
+                !serverModel.mediaOk
+                    ? () => serverModel.fdStartNow()
                     : serverModel.toggleService),
           PermissionRow(
             translate("Input Control"),

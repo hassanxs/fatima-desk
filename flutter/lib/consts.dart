@@ -134,6 +134,9 @@ const bool kFatimaDeskOssServer = true;
 
 /// Fatima Desk: this device's alias, kept in step with the server.
 const String kOptionFdAlias = "fd-alias";
+// Local option: "Y" once the Android first-launch setup (start on boot,
+// remote input) has been offered.
+const String kOptionFdMobileSetupDone = "fd-mobile-setup-done";
 const String kOptionEnablePermChangeInAcceptWindow =
     "enable-perm-change-in-accept-window";
 const String kOptionHideElevateButtonInAcceptWindow =
