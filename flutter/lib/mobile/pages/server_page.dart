@@ -62,17 +62,21 @@ class _DropDownAction extends StatelessWidget {
           final isAllowNumericOneTimePassword =
               gFFI.serverModel.allowNumericOneTimePassword;
           return [
+            // Fatima Desk: IDs are assigned by the server admin only, and an
+            // alias can be set once; after that only the admin changes it.
             if (!isChangeIdDisabled())
               PopupMenuItem(
-                enabled: gFFI.serverModel.connectStatus > 0,
-                value: "changeID",
-                child: Text(translate("Change ID")),
-              ),
-            if (!isChangeIdDisabled())
-              PopupMenuItem(
-                enabled: gFFI.serverModel.connectStatus > 0,
+                enabled: gFFI.serverModel.connectStatus > 0 &&
+                    bind.mainGetOptionSync(key: kOptionFdAlias).isEmpty,
                 value: "setFdAlias",
-                child: Text(translate("Set alias")),
+                child: bind.mainGetOptionSync(key: kOptionFdAlias).isEmpty
+                    ? Text(translate("Set alias"))
+                    : ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        enabled: false,
+                        title: Text(translate("Set alias")),
+                        subtitle: Text(translate("fd_alias_locked")),
+                      ),
               ),
             if (!isChangeIdDisabled()) const PopupMenuDivider(),
             PopupMenuItem(
@@ -139,9 +143,7 @@ class _DropDownAction extends StatelessWidget {
           ];
         },
         onSelected: (value) async {
-          if (value == "changeID") {
-            changeIdDialog();
-          } else if (value == "setFdAlias") {
+          if (value == "setFdAlias") {
             setFdAliasDialog();
           } else if (value == "setPermanentPassword") {
             setPasswordDialog();
@@ -615,7 +617,7 @@ class _FdAliasRowState extends State<_FdAliasRow> {
     return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Flexible(
         child: Text(
-          '${translate('Alias')}: $_alias',
+          '${translate('Alias')}: $_alias@fd',
           style: const TextStyle(fontSize: 16.0, color: Colors.grey),
           overflow: TextOverflow.ellipsis,
         ),
@@ -624,7 +626,7 @@ class _FdAliasRowState extends State<_FdAliasRow> {
           visualDensity: VisualDensity.compact,
           icon: const Icon(Icons.copy_outlined, size: 20),
           onPressed: () {
-            Clipboard.setData(ClipboardData(text: _alias));
+            Clipboard.setData(ClipboardData(text: '$_alias@fd'));
             showToast(translate('Copied'));
           })
     ]).marginOnly(left: 39, bottom: 10);
