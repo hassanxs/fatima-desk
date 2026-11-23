@@ -388,7 +388,13 @@ sudo zypper install ./fatimadesk-1.5.3-0.x86_64-suse.rpm</code></pre>
 
       <section id="updating">
         <h2>Updating</h2>
-        <p>Fatima Desk doesn't update itself. When a new version is announced, download it from the <a href="https://github.com/hassanxs/fatima-desk/releases">releases page</a> and install it over the old one. Your ID, alias, passwords and address book are kept.</p>
+        <p>From version 1.5.3-fd2, Fatima Desk checks for a new version each time it starts. When there is one, a card on the home screen says so:</p>
+        <ul>
+          <li><b>Windows and macOS</b> (installed): click <b>Update</b>. Fatima Desk downloads the new version, checks that it is the genuine signed release, and installs it. Windows asks for permission (UAC), macOS for your password.</li>
+          <li><b>Linux and Android</b>: tap <b>Download</b> to open the release page, then install the new package or APK over the old one.</li>
+        </ul>
+        <p><b>Changelog</b> on the card shows what's new. On Windows, <i>Settings → General → Auto update</i> installs new versions in the background when nobody is connected. On a computer, turn off <i>Check for software update on startup</i> in the same place to stop the check.</p>
+        <p>Versions before 1.5.3-fd2 don't check for updates: download the new version from the <a href="https://github.com/hassanxs/fatima-desk/releases">releases page</a> and install it over the old one. In every case your ID, alias, passwords and address book are kept.</p>
       </section>
 
       <section id="trouble">

@@ -254,10 +254,24 @@ icon to type. Switch between mouse mode and touch mode from the toolbar.
 
 ## Updating
 
-Fatima Desk doesn't update itself. When a new version is announced, download
-it from the [releases page](https://github.com/hassanxs/fatima-desk/releases)
-and install it over the old one. Your ID, alias, passwords and address book
-are kept.
+From version 1.5.3-fd2, Fatima Desk checks for a new version each time it
+starts. When there is one, a card on the home screen says so:
+
+- **Windows and macOS** (installed): click **Update**. Fatima Desk downloads
+  the new version, checks that it is the genuine signed release, and installs
+  it. Windows asks for permission (UAC), macOS for your password.
+- **Linux and Android**: tap **Download** to open the release page, then
+  install the new package or APK over the old one.
+
+**Changelog** on the card shows what's new. On Windows, *Settings → General →
+Auto update* installs new versions in the background when nobody is
+connected. On a computer, turn off *Check for software update on startup* in
+the same place to stop the check.
+
+Versions before 1.5.3-fd2 don't check for updates: download the new version
+from the [releases page](https://github.com/hassanxs/fatima-desk/releases)
+and install it over the old one. In every case your ID, alias, passwords and
+address book are kept.
 
 ## Troubleshooting
 
