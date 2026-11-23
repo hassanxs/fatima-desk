@@ -207,8 +207,9 @@ void setFdAliasDialog() async {
         final Iterable violations = rules.where((r) => !r.validate(alias));
         if (violations.isNotEmpty) {
           setState(() {
-            msg =
-                '${translate('Prompt')}:  ${violations.map((r) => r.name).join(', ')}';
+            msg = (isDesktop || isWebDesktop)
+                ? '${translate('Prompt')}:  ${violations.map((r) => r.name).join(', ')}'
+                : violations.map((r) => r.name).join(', ');
           });
           return;
         }
@@ -233,7 +234,9 @@ void setFdAliasDialog() async {
       }
       setState(() {
         isInProgress = false;
-        msg = '${translate('Prompt')}: ${translate(status)}';
+        msg = (isDesktop || isWebDesktop)
+            ? '${translate('Prompt')}: ${translate(status)}'
+            : translate(status);
       });
     }
 
@@ -267,6 +270,9 @@ void setFdAliasDialog() async {
                 children: rules.map((e) {
                   var checked = rxAlias.value.isEmpty || e.validate(rxAlias.value);
                   return Chip(
+                      visualDensity: (isDesktop || isWebDesktop)
+                          ? null
+                          : VisualDensity.compact,
                       label: Text(
                         e.name,
                         style: TextStyle(

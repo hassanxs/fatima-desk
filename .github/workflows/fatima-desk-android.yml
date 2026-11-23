@@ -1,0 +1,277 @@
+# Fatima Desk: Android APKs.
+#
+# Run it from GitHub: Actions -> "Fatima Desk Android" -> Run workflow.
+# Builds a release APK per ABI (arm64-v8a, and armeabi-v7a for older phones)
+# signed with the Fatima Desk release key, and uploads them as artifacts
+# (kept 7 days). Nothing here publishes a release.
+#
+# The steps follow RustDesk's flutter-build.yml (generate-bridge and
+# build-rustdesk-android). Linux runners only; a cold run takes roughly
+# 40-60 minutes per ABI, in parallel. Rust and vcpkg caches speed up reruns.
+#
+# Signing secrets (set once, see the keystore's password file):
+#   ANDROID_SIGNING_KEY         base64 of the .jks keystore
+#   ANDROID_ALIAS               key alias
+#   ANDROID_KEY_STORE_PASSWORD  store password
+#   ANDROID_KEY_PASSWORD        key password
+# Every update must be signed with the same key, or Android refuses it.
+
+name: Fatima Desk Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      armv7:
+        description: "Also build armeabi-v7a (older 32-bit phones)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+env:
+  RUST_VERSION: "1.75"
+  CARGO_NDK_VERSION: "3.1.2"
+  CARGO_EXPAND_VERSION: "1.0.95"
+  FLUTTER_RUST_BRIDGE_VERSION: "1.80.1"
+  ANDROID_FLUTTER_VERSION: "3.24.5"
+  BRIDGE_FLUTTER_VERSION: "3.22.3"
+  NDK_VERSION: "r28c"
+  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
+  VERSION: "1.5.3"
+
+jobs:
+  plan:
+    name: Choose ABIs
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - id: plan
+        run: |
+          m='[{"target":"aarch64-linux-android","abi":"arm64-v8a","platform":"android-arm64","ndk_script":"ndk_arm64.sh","libcxx":"aarch64-linux-android"}]'
+          if [ "${{ inputs.armv7 }}" = "true" ]; then
+            m=$(echo "$m" | jq -c '. + [{"target":"armv7-linux-androideabi","abi":"armeabi-v7a","platform":"android-arm","ndk_script":"ndk_arm.sh","libcxx":"arm-linux-androideabi"}]')
+          fi
+          echo "matrix=$m" >> "$GITHUB_OUTPUT"
+          echo "ABIs: $m"
+
+  generate-bridge:
+    name: Generate flutter_rust_bridge files
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y clang cmake curl gcc git g++ libclang-dev \
+            libgtk-3-dev llvm-dev nasm ninja-build pkg-config wget
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: x86_64-unknown-linux-gnu
+          components: "rustfmt"
+
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          prefix-key: bridge-ubuntu-22.04
+
+      - name: Install flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.BRIDGE_FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install flutter rust bridge deps
+        shell: bash
+        run: |
+          cargo install cargo-expand --version ${{ env.CARGO_EXPAND_VERSION }} --locked
+          cargo install flutter_rust_bridge_codegen --version ${{ env.FLUTTER_RUST_BRIDGE_VERSION }} --features "uuid" --locked
+          # Flutter 3.22.3: extended_text 14 needs a newer Dart, so downgrade for resolution only.
+          sed -i -e 's/extended_text: 14.0.0/extended_text: 13.0.0/g' flutter/pubspec.yaml
+          pushd flutter && flutter pub get && popd
+
+      - name: Run flutter rust bridge
+        run: |
+          ~/.cargo/bin/flutter_rust_bridge_codegen --rust-input ./src/flutter_ffi.rs --dart-output ./flutter/lib/generated_bridge.dart --c-output ./flutter/macos/Runner/bridge_generated.h
+
+      - name: Upload bridge files
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bridge-artifact-android
+          retention-days: 1
+          path: |
+            ./src/bridge_generated.rs
+            ./src/bridge_generated.io.rs
+            ./flutter/lib/generated_bridge.dart
+            ./flutter/lib/generated_bridge.freezed.dart
+
+  build-android:
+    name: Android ${{ matrix.job.abi }}
+    needs: [plan, generate-bridge]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        job: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
+
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake curl gcc-multilib git g++ g++-multilib \
+            libayatana-appindicator3-dev libasound2-dev libc6-dev libclang-dev \
+            libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+            libgtk-3-dev libpulse-dev libva-dev libxcb-randr0-dev libxcb-shape0-dev \
+            libxcb-xfixes0-dev libxdo-dev libxfixes-dev llvm-dev nasm ninja-build \
+            openjdk-17-jdk-headless pkg-config tree wget
+
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          submodules: recursive
+
+      - name: Install flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: "stable"
+          flutter-version: ${{ env.ANDROID_FLUTTER_VERSION }}
+
+      - name: Patch flutter
+        run: |
+          cd $(dirname $(dirname $(which flutter)))
+          git apply ${{ github.workspace }}/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff
+
+      - uses: nttld/setup-ndk@ed92fe6cadad69be94a966a7ee3271275e62f779 # v1
+        id: setup-ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+
+      - name: Setup vcpkg with GitHub Actions binary cache
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11
+        with:
+          vcpkgDirectory: /opt/artifacts/vcpkg
+          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
+          doNotCache: false
+
+      - name: Install vcpkg dependencies
+        shell: bash
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          if ! ./flutter/build_android_deps.sh "${{ matrix.job.abi }}"; then
+            find "${VCPKG_ROOT}/" -name "*.log" | while read -r f; do echo "$f:"; cat "$f"; echo; done
+            exit 1
+          fi
+
+      - name: Restore bridge files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: bridge-artifact-android
+          path: ./
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: "rustfmt"
+
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          prefix-key: fatimadesk-android
+          key: ${{ matrix.job.target }}
+
+      - name: Build Rust library
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          rustup target add ${{ matrix.job.target }}
+          cargo install cargo-ndk --version ${{ env.CARGO_NDK_VERSION }} --locked
+          ./flutter/${{ matrix.job.ndk_script }}
+          mkdir -p ./flutter/android/app/src/main/jniLibs/${{ matrix.job.abi }}
+          cp ./target/${{ matrix.job.target }}/release/liblibrustdesk.so ./flutter/android/app/src/main/jniLibs/${{ matrix.job.abi }}/librustdesk.so
+          cp ${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${{ matrix.job.libcxx }}/libc++_shared.so ./flutter/android/app/src/main/jniLibs/${{ matrix.job.abi }}/
+
+      - name: Check the server and key compiled in
+        run: |
+          so=./flutter/android/app/src/main/jniLibs/${{ matrix.job.abi }}/librustdesk.so
+          strings "$so" | grep -q '217.77.7.236:21216' && echo "server address: found"
+          strings "$so" | grep -q 'aJVhTH6HNoPGjnx5RsWJIk3lUZKFN2ZfvMJBJU7N+Bs=' && echo "server key: found"
+
+      - name: Write signing config
+        env:
+          ANDROID_SIGNING_KEY: ${{ secrets.ANDROID_SIGNING_KEY }}
+          ANDROID_ALIAS: ${{ secrets.ANDROID_ALIAS }}
+          ANDROID_KEY_STORE_PASSWORD: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_SIGNING_KEY" ]; then
+            echo "::error::ANDROID_SIGNING_KEY secret is missing"; exit 1
+          fi
+          echo "$ANDROID_SIGNING_KEY" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$ANDROID_KEY_STORE_PASSWORD"
+            echo "keyAlias=$ANDROID_ALIAS"
+            echo "keyPassword=$ANDROID_KEY_PASSWORD"
+          } > ./flutter/android/key.properties
+
+      - name: Build APK
+        shell: bash
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          export PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH
+          sed -i "s/org.gradle.jvmargs=-Xmx1024M/org.gradle.jvmargs=-Xmx2g/g" ./flutter/android/gradle.properties
+          pushd flutter
+          flutter build apk --release --target-platform ${{ matrix.job.platform }} --split-per-abi
+          popd
+          mkdir -p out
+          mv flutter/build/app/outputs/flutter-apk/app-${{ matrix.job.abi }}-release.apk \
+             out/fatimadesk-${{ env.VERSION }}-${{ matrix.job.abi }}.apk
+          rm -f ./flutter/android/key.properties "$RUNNER_TEMP/release.jks"
+
+      - name: Verify APK
+        run: |
+          BT=$(ls -d /usr/local/lib/android/sdk/build-tools/* | sort -V | tail -n 1)
+          apk=out/fatimadesk-${{ env.VERSION }}-${{ matrix.job.abi }}.apk
+          "$BT/aapt" dump badging "$apk" | grep -E "^package:|^application-label:|^native-code:|^sdkVersion:|^targetSdkVersion:"
+          "$BT/apksigner" verify --verbose --print-certs "$apk" | grep -vi "^WARNING"
+          "$BT/aapt" dump badging "$apk" | grep -q "package: name='com.fatimadesk.app'"
+          "$BT/aapt" dump badging "$apk" | grep -q "application-label:'Fatima Desk'"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fatimadesk-${{ env.VERSION }}-android-${{ matrix.job.abi }}
+          path: out/fatimadesk-${{ env.VERSION }}-${{ matrix.job.abi }}.apk
+          if-no-files-found: error
+          retention-days: 7

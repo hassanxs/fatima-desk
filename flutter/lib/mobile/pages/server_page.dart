@@ -68,6 +68,12 @@ class _DropDownAction extends StatelessWidget {
                 value: "changeID",
                 child: Text(translate("Change ID")),
               ),
+            if (!isChangeIdDisabled())
+              PopupMenuItem(
+                enabled: gFFI.serverModel.connectStatus > 0,
+                value: "setFdAlias",
+                child: Text(translate("Set alias")),
+              ),
             if (!isChangeIdDisabled()) const PopupMenuDivider(),
             PopupMenuItem(
               value: 'AcceptSessionsViaPassword',
@@ -135,6 +141,8 @@ class _DropDownAction extends StatelessWidget {
         onSelected: (value) async {
           if (value == "changeID") {
             changeIdDialog();
+          } else if (value == "setFdAlias") {
+            setFdAliasDialog();
           } else if (value == "setPermanentPassword") {
             setPasswordDialog();
           } else if (value == "setTemporaryPasswordLength") {
@@ -530,6 +538,7 @@ class ServerInfo extends StatelessWidget {
                     copyToClipboard(model.serverId.value.text.trim());
                   })
             ]).marginOnly(left: 39, bottom: 10),
+            const _FdAliasRow(),
             // Password
             Row(children: [
               const Icon(Icons.lock_outline, color: Colors.grey, size: iconSize)
@@ -563,6 +572,62 @@ class ServerInfo extends StatelessWidget {
             ConnectionStateNotification()
           ],
         ));
+  }
+}
+
+/// Fatima Desk: this device's alias, shown under the ID when it has one.
+/// The server can set or clear it at any time (every registration carries
+/// it), so it is re-read every two seconds.
+class _FdAliasRow extends StatefulWidget {
+  const _FdAliasRow({Key? key}) : super(key: key);
+
+  @override
+  State<_FdAliasRow> createState() => _FdAliasRowState();
+}
+
+class _FdAliasRowState extends State<_FdAliasRow> {
+  String _alias = '';
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+    _timer = Timer.periodic(const Duration(seconds: 2), (_) => _refresh());
+  }
+
+  void _refresh() {
+    final alias = bind.mainGetOptionSync(key: kOptionFdAlias);
+    if (alias != _alias && mounted) {
+      setState(() => _alias = alias);
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_alias.isEmpty) return const SizedBox.shrink();
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Flexible(
+        child: Text(
+          '${translate('Alias')}: $_alias',
+          style: const TextStyle(fontSize: 16.0, color: Colors.grey),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      IconButton(
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.copy_outlined, size: 20),
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: _alias));
+            showToast(translate('Copied'));
+          })
+    ]).marginOnly(left: 39, bottom: 10);
   }
 }
 
