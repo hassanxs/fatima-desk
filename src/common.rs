@@ -1309,7 +1309,7 @@ fn get_api_server_(api: String, custom: String) -> String {
         }
     }
     // Fatima Desk: never fall back to RustDesk's account server.
-    String::new()
+    base::config::FD_API_SERVER.to_owned()
 }
 
 #[inline]
