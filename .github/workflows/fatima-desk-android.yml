@@ -3,7 +3,8 @@
 # Run it from GitHub: Actions -> "Fatima Desk Android" -> Run workflow.
 # Builds a release APK per ABI (arm64-v8a, and armeabi-v7a for older phones)
 # signed with the Fatima Desk release key, and uploads them as artifacts
-# (kept 7 days). Nothing here publishes a release.
+# (kept 7 days), and can send the arm64 APK to Firebase App Distribution.
+# Nothing here publishes a GitHub release.
 #
 # The steps follow RustDesk's flutter-build.yml (generate-bridge and
 # build-rustdesk-android). Linux runners only; a cold run takes roughly
@@ -15,6 +16,12 @@
 #   ANDROID_KEY_STORE_PASSWORD  store password
 #   ANDROID_KEY_PASSWORD        key password
 # Every update must be signed with the same key, or Android refuses it.
+#
+# Firebase App Distribution (optional; the job is skipped until both are set):
+#   FIREBASE_APP_ID             Android app ID, e.g. 1:123456789:android:abc...
+#   FIREBASE_SERVICE_ACCOUNT    JSON key of a service account with the
+#                               "Firebase App Distribution Admin" role
+# The arm64-v8a APK is sent to the tester group in the "firebase_groups" input.
 
 name: Fatima Desk Android
 
@@ -25,6 +32,14 @@ on:
         description: "Also build armeabi-v7a (older 32-bit phones)"
         type: boolean
         default: true
+      firebase_groups:
+        description: "Firebase App Distribution tester groups (comma-separated; empty = don't send)"
+        type: string
+        default: "family"
+      release_notes:
+        description: "Release notes shown to testers"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -252,7 +267,9 @@ jobs:
           export PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH
           sed -i "s/org.gradle.jvmargs=-Xmx1024M/org.gradle.jvmargs=-Xmx2g/g" ./flutter/android/gradle.properties
           pushd flutter
-          flutter build apk --release --target-platform ${{ matrix.job.platform }} --split-per-abi
+          # Build number rises with every run so phones (and Firebase App
+          # Tester) see each build as an update; versionName stays VERSION.
+          flutter build apk --release --target-platform ${{ matrix.job.platform }} --split-per-abi             --build-name ${{ env.VERSION }} --build-number $((100 + ${{ github.run_number }}))
           popd
           mkdir -p out
           mv flutter/build/app/outputs/flutter-apk/app-${{ matrix.job.abi }}-release.apk \
@@ -275,3 +292,42 @@ jobs:
           path: out/fatimadesk-${{ env.VERSION }}-${{ matrix.job.abi }}.apk
           if-no-files-found: error
           retention-days: 7
+
+  distribute:
+    name: Firebase App Distribution
+    needs: build-android
+    if: ${{ inputs.firebase_groups != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Firebase secrets
+        id: check
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$FIREBASE_APP_ID" ] && [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::FIREBASE_APP_ID / FIREBASE_SERVICE_ACCOUNT not set; skipping Firebase."
+          fi
+
+      - name: Download arm64-v8a APK
+        if: steps.check.outputs.ok == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: fatimadesk-${{ env.VERSION }}-android-arm64-v8a
+          path: out
+
+      - name: Send to testers
+        if: steps.check.outputs.ok == 'true'
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          GROUPS: ${{ inputs.firebase_groups }}
+          NOTES: ${{ inputs.release_notes }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+          [ -n "$NOTES" ] || NOTES="Fatima Desk ${VERSION} (build $((100 + ${{ github.run_number }})), ${GITHUB_SHA::9})"
+          npx --yes firebase-tools@13.29.1 appdistribution:distribute             "out/fatimadesk-${VERSION}-arm64-v8a.apk"             --app "$FIREBASE_APP_ID" --groups "$GROUPS" --release-notes "$NOTES"
+          rm -f "$RUNNER_TEMP/firebase-sa.json"
