@@ -4117,7 +4117,8 @@ void earlyAssert() {
 
 void checkUpdate() {
   if (!isWeb) {
-    if (!bind.isCustomClient()) {
+    // Fatima Desk checks its own GitHub releases (src/fatimadesk_update.rs).
+    if (!bind.isCustomClient() || kFatimaDeskOssServer) {
       platformFFI.registerEventHandler(
           kCheckSoftwareUpdateFinish, kCheckSoftwareUpdateFinish,
           (Map<String, dynamic> evt) async {

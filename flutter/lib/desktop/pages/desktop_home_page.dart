@@ -458,6 +458,19 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget buildHelpCards(String updateUrl) {
+    if (kFatimaDeskOssServer && updateUrl.isNotEmpty && !isCardClosed) {
+      final isToUpdate = (isWindows || isMacOS) && bind.mainIsInstalled();
+      return buildInstallCard(
+          "Status",
+          "${translate("new-version-of-{${bind.mainGetAppNameSync()}}-tip")} (${bind.mainGetNewVersion()}).",
+          isToUpdate ? 'Update' : 'Download',
+          isToUpdate
+              ? () => handleUpdate(updateUrl)
+              : () async => await launchUrl(Uri.parse(updateUrl)),
+          closeButton: true,
+          help: 'Changelog',
+          link: updateUrl);
+    }
     if (!bind.isCustomClient() &&
         updateUrl.isNotEmpty &&
         !isCardClosed &&

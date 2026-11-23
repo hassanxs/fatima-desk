@@ -106,9 +106,11 @@ pub(super) fn verified_update_artifact_from_release_page_url(
 ) -> ResultType<VerifiedUpdateArtifact> {
     let release_id = release_id_from_update_url(update_url)?;
     let display_version = display_version_from_release_id(&release_id)?;
-    let expected_artifact_url_prefix =
-        format!("https://github.com/rustdesk/rustdesk/releases/download/{release_id}/");
-    let metadata_url = format!("{expected_artifact_url_prefix}rustdesk-update.json");
+    let expected_artifact_url_prefix = crate::fatimadesk_update::release_download_prefix(&release_id);
+    let metadata_url = format!(
+        "{expected_artifact_url_prefix}{}",
+        crate::fatimadesk_update::UPDATE_METADATA_FILE
+    );
     let signature_url = format!("{metadata_url}.sig");
     let metadata_bytes = fetch_update_sidecar_bytes(&metadata_url)?;
     let signature_bytes = fetch_update_sidecar_bytes(&signature_url)?;
@@ -177,8 +179,8 @@ pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
     let tag = segments.next()?;
     let filename = segments.next()?;
 
-    if owner != "rustdesk"
-        || repo != "rustdesk"
+    if owner != crate::fatimadesk_update::REPO_OWNER
+        || repo != crate::fatimadesk_update::REPO_NAME
         || releases != "releases"
         || download != "download"
         || tag.is_empty()
@@ -214,13 +216,13 @@ mod tests {
     #[test]
     fn update_download_file_accepts_expected_github_asset_urls() {
         let file = get_update_download_file_from_url(
-            "https://github.com/rustdesk/rustdesk/releases/download/1.4.0/rustdesk-1.4.0-x86_64.dmg",
+            "https://github.com/hassanxs/fatima-desk/releases/download/v1.5.3-fd2/fatimadesk-1.5.3-x64.msi",
         )
         .expect("valid GitHub release asset URL");
 
         assert_eq!(
             file.file_name().and_then(|name| name.to_str()),
-            Some("rustdesk-1.4.0-x86_64.dmg")
+            Some("fatimadesk-1.5.3-x64.msi")
         );
     }
 
@@ -230,6 +232,7 @@ mod tests {
             "http://github.com/rustdesk/rustdesk/releases/download/1/rustdesk.exe",
             "https://example.com/rustdesk.exe",
             "https://github.com/other/project/releases/download/1/rustdesk.exe",
+            "https://github.com/rustdesk/rustdesk/releases/download/1.4.0/rustdesk-1.4.0-x86_64.dmg",
             "https://github.com/rustdesk/rustdesk/releases/download/1/",
             "https://github.com/rustdesk/rustdesk/releases/download/1/nested/rustdesk.exe",
             "https://github.com/rustdesk/rustdesk/releases/download/1/C:rustdesk.exe",

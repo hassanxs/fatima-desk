@@ -1058,12 +1058,9 @@ pub fn is_modifier(evt: &KeyEvent) -> bool {
 }
 
 pub fn check_software_update() {
-    if is_custom_client() {
-        return;
-    }
     let opt = LocalConfig::get_option(keys::OPTION_ENABLE_CHECK_UPDATE);
     if config::option2bool(keys::OPTION_ENABLE_CHECK_UPDATE, &opt) {
-        std::thread::spawn(move || allow_err!(do_check_software_update()));
+        std::thread::spawn(move || allow_err!(crate::fatimadesk_update::check()));
     }
 }
 
@@ -1096,11 +1093,16 @@ pub(crate) fn release_id_from_update_url(update_url: &str) -> ResultType<String>
         bail!("Update URL has no path: {}", update_url);
     };
     let segments = segments.collect::<Vec<_>>();
+    use crate::fatimadesk_update::{REPO_NAME, REPO_OWNER};
     let release_id = match segments.as_slice() {
-        ["rustdesk", "rustdesk", "releases", "tag", release_id] => *release_id,
-        ["rustdesk", "rustdesk", "releases", "tag", release_id, ""] => *release_id,
+        [owner, repo, "releases", "tag", release_id]
+        | [owner, repo, "releases", "tag", release_id, ""]
+            if *owner == REPO_OWNER && *repo == REPO_NAME =>
+        {
+            *release_id
+        }
         _ => bail!(
-            "Update URL is not a RustDesk release tag URL: {}",
+            "Update URL is not a Fatima Desk release tag URL: {}",
             update_url
         ),
     };
@@ -1129,6 +1131,12 @@ pub(crate) fn url_has_explicit_port(raw_url: &str) -> bool {
 
 pub(crate) fn display_version_from_release_id(release_id: &str) -> ResultType<String> {
     let display_version = release_id.strip_prefix('v').unwrap_or(release_id);
+    if display_version.contains("-fd") {
+        if crate::fatimadesk_update::parse_release(display_version).is_none() {
+            bail!("Release id is not a Fatima Desk release: {}", release_id);
+        }
+        return Ok(display_version.to_owned());
+    }
     let segments = display_version.split('.').collect::<Vec<_>>();
     if segments.len() != 3
         || segments.iter().any(|segment| {
@@ -3122,15 +3130,17 @@ mod tests {
     }
 
     #[test]
-    fn parses_stable_rustdesk_release_url() {
-        let update_url = "https://github.com/rustdesk/rustdesk/releases/tag/v1.4.6";
+    fn parses_fatimadesk_release_url() {
+        let update_url = "https://github.com/hassanxs/fatima-desk/releases/tag/v1.5.3-fd2";
 
-        assert_eq!(release_id_from_update_url(update_url).unwrap(), "v1.4.6");
+        assert_eq!(release_id_from_update_url(update_url).unwrap(), "v1.5.3-fd2");
+        assert_eq!(display_version_from_release_id("v1.5.3-fd2").unwrap(), "1.5.3-fd2");
         assert_eq!(display_version_from_release_id("v1.4.6").unwrap(), "1.4.6");
         assert_eq!(
             release_id_from_update_url(&format!("{update_url}/")).unwrap(),
-            "v1.4.6"
+            "v1.5.3-fd2"
         );
+        assert!(release_id_from_update_url("https://github.com/rustdesk/rustdesk/releases/tag/v1.4.6").is_err());
     }
 
     #[test]
@@ -3152,7 +3162,7 @@ mod tests {
         ] {
             assert!(release_id_from_update_url(update_url).is_err());
         }
-        for release_id in ["v1.4.6-rc1", "nightly", "v9223372036854775807.1.1"] {
+        for release_id in ["v1.4.6-rc1", "nightly", "v9223372036854775807.1.1", "v1.5.3-fd", "v1.5.3-fdx"] {
             assert!(display_version_from_release_id(release_id).is_err());
         }
     }

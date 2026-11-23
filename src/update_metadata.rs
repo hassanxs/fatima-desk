@@ -27,12 +27,14 @@ const METADATA_SCHEMA_VERSION: u32 = 1;
 const SIGNATURE_SCHEMA_VERSION: u32 = 1;
 const SIGNATURE_ALGORITHM: &str = "ed25519";
 
+// Fatima Desk's update signing key (private half: secrets/fatimadesk-update-signing.pem,
+// used by tools/fatimadesk_update_manifest.py).
 const TRUSTED_UPDATE_KEYS: &[TrustedUpdateKey] = &[TrustedUpdateKey {
-    key_id: "2026-ed25519-main",
+    key_id: "2026-fd-ed25519-1",
     algorithm: SIGNATURE_ALGORITHM,
     public_key: [
-        52, 214, 32, 65, 191, 134, 137, 75, 157, 74, 67, 221, 150, 161, 118, 215, 218, 35, 236,
-        156, 127, 120, 133, 156, 197, 141, 37, 22, 47, 106, 181, 177,
+        115, 53, 196, 108, 102, 190, 178, 157, 3, 117, 58, 167, 117, 102, 126, 53, 130, 154, 103,
+        240, 97, 137, 171, 44, 195, 91, 187, 153, 116, 122, 167, 10,
     ],
 }];
 

@@ -111,6 +111,24 @@ git clone --recurse-submodules -b fatima-desk https://github.com/hassanxs/fatima
 Building follows RustDesk's process, so RustDesk's
 [build documentation](https://rustdesk.com/docs/en/dev/build/) also applies.
 
+### Releasing and in-app updates
+
+The app checks this repository's latest GitHub release when it starts
+(Settings → General → *Check for software update on startup*). When the release tag (`v<version>-fd<N>`) is newer than the build's own
+`RELEASE` in [`src/fatimadesk_update.rs`](src/fatimadesk_update.rs), it offers
+the update: on Windows and macOS it downloads and installs it, on Linux and
+Android it opens the release page. It installs a file only when the release's
+signed `fatimadesk-update.json` lists it with a matching size and SHA-256.
+
+For each release:
+
+1. Bump `RELEASE` in `src/fatimadesk_update.rs`, then build every platform.
+2. Put the files in one folder and sign the manifest with the release key
+   (kept outside the repository):
+   `python tools/fatimadesk_update_manifest.py sign --key <key.pem> --tag v1.5.3-fd2 --dir <folder>`
+3. Upload the files plus `fatimadesk-update.json` and `fatimadesk-update.json.sig`
+   to a GitHub release with that tag, and publish it as the latest release.
+
 ### Code layout
 
 | Path | What it is |
