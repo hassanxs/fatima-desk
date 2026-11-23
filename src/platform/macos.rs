@@ -216,6 +216,12 @@ fn unsafe_is_can_screen_recording(prompt: bool) -> bool {
     can_record_screen
 }
 
+// The privileged scripts and write_plists() name the launchd jobs com.carriez.<AppName>,
+// independent of ORG, so the checks below must use the same name.
+fn launchd_job_name() -> String {
+    format!("com.carriez.{}", crate::get_app_name())
+}
+
 pub fn install_service() -> bool {
     is_installed_daemon(false)
 }
@@ -224,8 +230,8 @@ pub fn install_service() -> bool {
 // No need to merge the existing dup code, because the code in these two functions are too critical.
 // New code should be written in a common function.
 pub fn is_installed_daemon(prompt: bool) -> bool {
-    let daemon = format!("{}_service.plist", crate::get_full_name());
-    let agent = format!("{}_server.plist", crate::get_full_name());
+    let daemon = format!("{}_service.plist", launchd_job_name());
+    let agent = format!("{}_server.plist", launchd_job_name());
     let agent_plist_file = format!("/Library/LaunchAgents/{}", agent);
     if !prompt {
         // in macos 13, there is new way to check if they are running or enabled, https://developer.apple.com/documentation/servicemanagement/updating-helper-executables-from-earlier-versions-of-macos#Respond-to-changes-in-System-Settings
@@ -444,7 +450,7 @@ pub fn uninstall_service(show_new_window: bool, sync: bool) -> bool {
                 log::error!("run osascript failed: {}", e);
             }
             _ => {
-                let agent = format!("{}_server.plist", crate::get_full_name());
+                let agent = format!("{}_server.plist", launchd_job_name());
                 let agent_plist_file = format!("/Library/LaunchAgents/{}", agent);
                 let uninstalled = !std::path::Path::new(&agent_plist_file).exists();
                 log::info!(
@@ -460,7 +466,7 @@ pub fn uninstall_service(show_new_window: bool, sync: bool) -> bool {
                     }
                     crate::ipc::set_option("stop-service", "Y");
                     std::process::Command::new("launchctl")
-                        .args(&["remove", &format!("{}_server", crate::get_full_name())])
+                        .args(&["remove", &format!("{}_server", launchd_job_name())])
                         .status()
                         .ok();
                     if show_new_window {
@@ -976,7 +982,7 @@ fn update_me_from_source(update_source: UpdateSource) -> ResultType<()> {
 
     // Include launchd jobs in the transaction only while the installed service is enabled.
     if is_installed_daemon && !is_service_stopped {
-        let agent = format!("{}_server.plist", crate::get_full_name());
+        let agent = format!("{}_server.plist", launchd_job_name());
         let agent_plist_file = format!("/Library/LaunchAgents/{}", agent);
         update_daemon_agent(agent_plist_file, update_source)?;
     } else {
