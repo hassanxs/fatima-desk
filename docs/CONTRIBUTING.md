@@ -1,46 +1,30 @@
-# Contributing to RustDesk
+# Contributing to Fatima Desk
 
-RustDesk welcomes contributions from everyone. Here are the guidelines if you are
-thinking of helping us:
+Thanks for helping. Bug reports, ideas and pull requests are all welcome.
 
-## Contributions
+## Reporting a problem
 
-Contributions to RustDesk or its dependencies should be made in the form of GitHub
-pull requests. Each pull request will be reviewed by a core contributor
-(someone with permission to land patches) and either landed in the main tree or
-given feedback for changes that would be required. All contributions should
-follow this format, even those from core contributors.
+Open an [issue](https://github.com/hassanxs/fatima-desk/issues) and include:
 
-Should you wish to work on an issue, please claim it first by commenting on
-the GitHub issue that you want to work on it. This is to prevent duplicated
-efforts from contributors on the same issue.
+- your platform and version (Windows 11, macOS 14 on Intel, Linux Mint 22, Android 14, ...),
+- what you did, what you expected and what happened,
+- the log if you can: on Windows `%APPDATA%\FatimaDesk\log`, on Linux
+  `~/.local/share/logs/FatimaDesk`, on macOS `~/Library/Logs/FatimaDesk`.
 
-## Pull Request Checklist
+Please don't post passwords, device IDs you want to keep private, or anything
+else sensitive. Security problems go through [SECURITY](SECURITY.md) instead.
 
-- Branch from the master branch and, if needed, rebase to the current master
-  branch before submitting your pull request. If it doesn't merge cleanly with
-  master you may be asked to rebase your changes.
+## Pull requests
 
-- Commits should be as small as possible, while ensuring that each commit is
-  correct independently (i.e., each commit should compile and pass tests).
+- Work on the `fatima-desk` branch and keep each pull request to one change.
+- Keep changes small and close to the existing code; Fatima Desk follows
+  RustDesk's structure so upstream fixes can still be merged.
+- Add a test when you fix a bug in Rust code, and make sure the build still
+  passes (see *Building* in the [README](../README.md)).
+- Write commit messages that say what changed and why.
 
-- Commits should be accompanied by a Developer Certificate of Origin
-  (http://developercertificate.org) sign-off, which indicates that you (and
-  your employer if applicable) agree to be bound by the terms of the
-  [project license](../LICENCE). In git, this is the `-s` option to `git commit`
+By contributing you agree that your contribution is licensed under the
+[GNU AGPL v3.0](../LICENCE), like the rest of the project.
 
-- If your patch is not getting reviewed or you need a specific person to review
-  it, you can @-reply a reviewer asking for a review in the pull request or a
-  comment, or you can ask for a review via [email](mailto:info@rustdesk.com).
-
-- Add tests relevant to the fixed bug or new feature.
-
-For specific git instructions, see [GitHub workflow 101](https://github.com/servo/servo/wiki/GitHub-workflow).
-
-## Conduct
-
-https://github.com/rustdesk/rustdesk/blob/master/docs/CODE_OF_CONDUCT.md
-
-## Communication
-
-RustDesk contributors frequent the [Discord](https://discord.gg/nDceKgxnkV).
+Changes that aren't specific to Fatima Desk may be better sent to
+[RustDesk](https://github.com/rustdesk/rustdesk), which Fatima Desk is based on.
