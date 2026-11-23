@@ -40,6 +40,12 @@ on:
         description: "Release notes shown to testers"
         type: string
         default: ""
+  # Called by fatima-desk-release.yml (both ABIs, no Firebase upload).
+  workflow_call:
+    inputs:
+      armv7: { type: boolean, default: true }
+      firebase_groups: { type: string, default: "" }
+      release_notes: { type: string, default: "" }
 
 permissions:
   contents: read

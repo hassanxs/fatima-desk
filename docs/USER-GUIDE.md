@@ -260,12 +260,15 @@ starts. When there is one, a card on the home screen says so:
 - **Windows and macOS** (installed): click **Update**. Fatima Desk downloads
   the new version, checks that it is the genuine signed release, and installs
   it. Windows asks for permission (UAC), macOS for your password.
-- **Linux and Android**: tap **Download** to open the release page, then
-  install the new package or APK over the old one.
+- **Android** (from 1.5.3-fd3): tap the banner. The app downloads the new
+  version and opens Android's installer; tap **Update**. The first time,
+  Android asks you to allow Fatima Desk to install apps.
+- **Linux**: click **Download** to open the release page, then install the new
+  package over the old one.
 
-**Changelog** on the card shows what's new. On Windows, *Settings → General →
-Auto update* installs new versions in the background when nobody is
-connected. On a computer, turn off *Check for software update on startup* in
+**Changelog** on the card shows what's new. On Windows and macOS (from
+1.5.3-fd3), *Settings → General → Auto update* installs new versions in the
+background when nobody is connected. On a computer, turn off *Check for software update on startup* in
 the same place to stop the check.
 
 Versions before 1.5.3-fd2 don't check for updates: download the new version

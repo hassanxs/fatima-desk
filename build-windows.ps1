@@ -18,18 +18,23 @@
 # LLVM 15.0.6, Flutter 3.24.5 in D:\dev\flutter, vcpkg in D:\dev\vcpkg,
 # flutter_rust_bridge_codegen 1.80.1, cargo-expand 1.0.95.
 
-param([switch]$Installer)
+#
+# CI (.github/workflows/fatima-desk-build.yml) runs it with -SkipSetup
+# -SkipBridge after installing the tools itself, and points it at them with
+# FD_FLUTTER_ROOT, VCPKG_ROOT, LIBCLANG_PATH and FD_NUGET.
+
+param([switch]$Installer, [switch]$SkipSetup, [switch]$SkipBridge)
 
 # 'Continue', not 'Stop': cargo and flutter print normal progress to stderr,
 # which Windows PowerShell 5.1 would turn into a terminating error. Failures
 # are caught by Run's exit-code check and -ErrorAction Stop on cmdlets.
 $ErrorActionPreference = 'Continue'
 $Repo = $PSScriptRoot
-$FlutterRoot = 'D:\dev\flutter'
+$FlutterRoot = if ($env:FD_FLUTTER_ROOT) { $env:FD_FLUTTER_ROOT } else { 'D:\dev\flutter' }
 
-$env:VCPKG_ROOT = 'D:\dev\vcpkg'
-$env:LIBCLANG_PATH = 'C:\Program Files\LLVM\bin'
-$env:Path = "$env:USERPROFILE\.cargo\bin;C:\Program Files\LLVM\bin;$FlutterRoot\bin;$env:Path"
+if (-not $env:VCPKG_ROOT) { $env:VCPKG_ROOT = 'D:\dev\vcpkg' }
+if (-not $env:LIBCLANG_PATH) { $env:LIBCLANG_PATH = 'C:\Program Files\LLVM\bin' }
+$env:Path = "$env:USERPROFILE\.cargo\bin;$env:LIBCLANG_PATH;$FlutterRoot\bin;$env:Path"
 
 function Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 function Run($exe) {
@@ -44,6 +49,7 @@ Run rustc --version
 Run flutter --version
 
 # ---- One-time Flutter setup (skipped once done) ------------------------
+if (-not $SkipSetup) {
 $engineDir = "$FlutterRoot\bin\cache\artifacts\engine\windows-x64-release"
 $engineMarker = "$engineDir\.fatimadesk-custom-engine"
 if (-not (Test-Path $engineMarker)) {
@@ -82,6 +88,7 @@ if (-not (Get-Command cargo-expand -ErrorAction SilentlyContinue)) {
     Step 'Installing cargo-expand (one time)'
     Run cargo install cargo-expand --version 1.0.95 --locked
 }
+}
 
 # ---- Build -------------------------------------------------------------
 Step 'Fetching Flutter packages'
@@ -89,8 +96,10 @@ Push-Location flutter
 Run flutter pub get
 Pop-Location
 
-Step 'Generating Flutter <-> Rust bridge'
-Run flutter_rust_bridge_codegen --rust-input ./src/flutter_ffi.rs --dart-output ./flutter/lib/generated_bridge.dart
+if (-not $SkipBridge) {
+    Step 'Generating Flutter <-> Rust bridge'
+    Run flutter_rust_bridge_codegen --rust-input ./src/flutter_ffi.rs --dart-output ./flutter/lib/generated_bridge.dart
+}
 
 Step 'Building Fatima Desk (Rust core + Flutter UI)'
 if ($Installer) {
@@ -129,7 +138,11 @@ if ($Installer) {
     # keep res\msi untouched.
     Step 'Building the MSI installer'
     $msbuild = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe'
-    $nuget = 'D:\dev\nuget\nuget.exe'
+    if (-not (Test-Path $msbuild)) {
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+    }
+    $nuget = if ($env:FD_NUGET) { $env:FD_NUGET } else { 'D:\dev\nuget\nuget.exe' }
     # Same layout as res\ (the project reads ..\icon.ico), in a folder whose
     # path has no spaces: preprocess.py runs the app through an unquoted shell
     # command, which breaks on paths like "D:\Projects\Fatima Desk".

@@ -10,7 +10,7 @@ use hbb_common::{bail, log, ResultType};
 pub const REPO_OWNER: &str = "hassanxs";
 pub const REPO_NAME: &str = "fatima-desk";
 /// The release this build is part of. Bump it for every release.
-pub const RELEASE: &str = "1.5.3-fd2";
+pub const RELEASE: &str = "1.5.3-fd3";
 pub const UPDATE_METADATA_FILE: &str = "fatimadesk-update.json";
 const LATEST_RELEASE_API: &str = "https://api.github.com/repos/hassanxs/fatima-desk/releases/latest";
 const MAX_RESPONSE_BYTES: usize = 1024 * 1024;

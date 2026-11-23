@@ -242,6 +242,9 @@ class PlatformFFI {
       debugPrintStack(label: 'initialize failed: $e');
     }
     version = await getVersion();
+    try {
+      fdRelease = await _ffiBind.mainGetVersion();
+    } catch (_) {}
   }
 
   Future<bool> tryHandle(Map<String, dynamic> evt) async {

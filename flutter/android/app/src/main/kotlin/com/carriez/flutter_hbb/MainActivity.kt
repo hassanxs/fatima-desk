@@ -288,6 +288,7 @@ class MainActivity : FlutterActivity() {
     private fun initFlutterChannel(flutterMethodChannel: MethodChannel) {
         flutterMethodChannel.setMethodCallHandler { call, result ->
             if (documentPicker.handle(call, result)) return@setMethodCallHandler
+            if (ApkInstaller.handle(this, call, result)) return@setMethodCallHandler
             // make sure result will be invoked, otherwise flutter will await forever
             when (call.method) {
                 "init_service" -> {

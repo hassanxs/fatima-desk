@@ -1,0 +1,115 @@
+# Fatima Desk: build every platform and create a draft release.
+#
+# Run it from GitHub: Actions -> "Fatima Desk release" -> Run workflow, with
+# the tag of the release (v<version>-fd<N>; it must match RELEASE in
+# src/fatimadesk_update.rs). It builds Windows, macOS (both), Linux and
+# Android, signs the update manifest (fatimadesk-update.json) with the
+# FD_UPDATE_SIGNING_KEY secret, and creates a DRAFT release with all files.
+# Nothing reaches users until you review the draft and press Publish; the
+# apps then offer the update.
+#
+# Secrets: FD_UPDATE_SIGNING_KEY (PEM of the update signing key) plus the
+# Android signing secrets used by fatima-desk-android.yml.
+
+name: Fatima Desk release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, e.g. v1.5.3-fd3 (must match RELEASE in src/fatimadesk_update.rs)"
+        type: string
+        required: true
+      title:
+        description: "Release title (empty: \"Fatima Desk <tag>\")"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check the tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Tag matches the build's RELEASE and is new
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release=$(sed -n 's/^pub const RELEASE: &str = "\(.*\)";/\1/p' src/fatimadesk_update.rs)
+          echo "RELEASE in the code: $release"
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-fd[0-9]+$ ]]; then echo "::error::bad tag $TAG"; exit 1; fi
+          if [ "$TAG" != "v$release" ]; then echo "::error::tag $TAG does not match RELEASE $release"; exit 1; fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::release $TAG already exists"; exit 1
+          fi
+
+  desktop:
+    needs: check
+    uses: ./.github/workflows/fatima-desk-build.yml
+    with:
+      macos_arm64: true
+      macos_x64: true
+      linux_x64: true
+      windows_x64: true
+
+  android:
+    needs: check
+    uses: ./.github/workflows/fatima-desk-android.yml
+    secrets: inherit
+    with:
+      armv7: true
+      firebase_groups: ""
+
+  publish:
+    name: Sign and create the draft release
+    needs: [desktop, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Collect the packages
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: fatimadesk-*
+          path: release
+          merge-multiple: true
+
+      - name: Check every file is there
+        run: |
+          ls -l release
+          n=$(ls release | grep -cE '\.(msi|exe|zip|dmg|deb|rpm|apk)$')
+          if [ "$n" -ne 10 ]; then echo "::error::expected 10 packages, found $n"; exit 1; fi
+
+      - name: Sign the update manifest
+        env:
+          FD_UPDATE_SIGNING_KEY: ${{ secrets.FD_UPDATE_SIGNING_KEY }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [ -z "$FD_UPDATE_SIGNING_KEY" ]; then echo "::error::secret FD_UPDATE_SIGNING_KEY is not set"; exit 1; fi
+          sudo apt-get install -y -qq python3-cryptography >/dev/null
+          umask 077
+          printf '%s\n' "$FD_UPDATE_SIGNING_KEY" > "$RUNNER_TEMP/key.pem"
+          python3 tools/fatimadesk_update_manifest.py sign --key "$RUNNER_TEMP/key.pem" --tag "$TAG" --dir release
+          rm -f "$RUNNER_TEMP/key.pem"
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          TITLE: ${{ inputs.title }}
+        run: |
+          [ -n "$TITLE" ] || TITLE="Fatima Desk $TAG"
+          cat > notes.md <<EOF
+          Draft built by the release workflow from ${GITHUB_SHA}. Replace these notes, then publish.
+
+          Files are checked by the in-app updater against \`fatimadesk-update.json\` (signed).
+          EOF
+          gh release create "$TAG" release/* --repo "$GITHUB_REPOSITORY" --draft \
+            --target "$GITHUB_SHA" --title "$TITLE" --notes-file notes.md
+          echo "Draft: $(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url --jq .url)"

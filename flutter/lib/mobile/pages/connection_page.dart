@@ -17,6 +17,7 @@ import '../../consts.dart';
 import '../../models/model.dart';
 import '../../models/platform_model.dart';
 import 'home_page.dart';
+import '../widgets/fd_apk_update.dart';
 
 /// Connection page for connecting to a remote peer.
 class ConnectionPage extends StatefulWidget implements PageShape {
@@ -124,6 +125,10 @@ class _ConnectionPageState extends State<ConnectionPage> {
         ? const SizedBox(height: 0)
         : InkWell(
             onTap: () async {
+              if (isAndroid) {
+                await fdAndroidUpdate(updateUrl);
+                return;
+              }
               // The Fatima Desk release page, with the APKs.
               final url = updateUrl;
               // https://pub.dev/packages/url_launcher#configuration

@@ -1057,7 +1057,8 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
           tiles: [
             SettingsTile(
                 onPressed: (context) => showAbout(gFFI.dialogManager),
-                title: Text(translate("Version: ") + version),
+                title: Text(translate("Version: ") +
+                    (fdRelease.isNotEmpty ? fdRelease : version)),
                 value: Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text('Fatima Desk'),
@@ -1194,7 +1195,7 @@ void showAbout(OverlayDialogManager dialogManager) {
     return CustomAlertDialog(
       title: Text('About Fatima Desk'),
       content: Wrap(direction: Axis.vertical, spacing: 12, children: [
-        Text('Version: $version'),
+        Text('Version: ${fdRelease.isNotEmpty ? fdRelease : version}'),
         Text('Copyright © ${DateTime.now().year} Hassan Latif.'),
         Text('Made with heart in Pakistan!',
             style: TextStyle(fontWeight: FontWeight.w800)),

@@ -518,10 +518,6 @@ pub fn check_update_as_root() -> ResultType<bool> {
         log::info!("[root-update] Auto update is disabled, skipping.");
         return Ok(false);
     }
-    if crate::is_custom_client() {
-        log::info!("[root-update] Custom client detected, skipping stock update.");
-        return Ok(false);
-    }
     // Clean up only old temp dirs from previous failed updates. The detached
     // installer keeps using its update directory after this process exits and
     // releases the advisory lock, so a newly-started daemon must not remove a
@@ -622,7 +618,10 @@ pub fn check_update_as_root() -> ResultType<bool> {
         bail!("[root-update] Active session started during download, deferring update.");
     }
     // Install silently as root
-    let result = crate::platform::update_from_dmg_as_root(&tmp_path, &artifact.version);
+    // The bundle says 1.5.3 for release 1.5.3-fdN; the DMG itself is bound to
+    // the release by the signed SHA-256.
+    let bundle_version = artifact.version.split("-fd").next().unwrap_or(&artifact.version);
+    let result = crate::platform::update_from_dmg_as_root(&tmp_path, bundle_version);
     // Clean up download directory
     if let Err(e) = std::fs::remove_dir_all(&private_tmp) {
         log::warn!(

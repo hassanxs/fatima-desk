@@ -100,7 +100,7 @@ git clone --recurse-submodules -b fatima-desk https://github.com/hassanxs/fatima
   also makes the installer `.exe`, portable `.zip` and `.msi`. It needs Visual
   Studio 2022 Build Tools (C++), Rust 1.75, LLVM 15, Flutter 3.24.5, vcpkg and
   Python; the header of the script lists the exact setup.
-- **macOS and Linux:** run the *Fatima Desk build* workflow
+- **Windows, macOS and Linux on CI:** run the *Fatima Desk build* workflow
   (`.github/workflows/fatima-desk-build.yml`) from the Actions tab and choose the
   targets. The packages appear as workflow artifacts.
 - **Android:** run the *Fatima Desk Android* workflow
@@ -116,18 +116,24 @@ Building follows RustDesk's process, so RustDesk's
 The app checks this repository's latest GitHub release when it starts
 (Settings → General → *Check for software update on startup*). When the release tag (`v<version>-fd<N>`) is newer than the build's own
 `RELEASE` in [`src/fatimadesk_update.rs`](src/fatimadesk_update.rs), it offers
-the update: on Windows and macOS it downloads and installs it, on Linux and
-Android it opens the release page. It installs a file only when the release's
-signed `fatimadesk-update.json` lists it with a matching size and SHA-256.
+the update: on Windows and macOS it downloads and installs it, on Android it
+downloads the APK and opens the system installer, on Linux it opens the
+release page. Windows and macOS install a file only when the release's signed
+`fatimadesk-update.json` lists it with a matching size and SHA-256; Android
+only accepts an APK signed with the same key as the installed app.
 
 For each release:
 
-1. Bump `RELEASE` in `src/fatimadesk_update.rs`, then build every platform.
-2. Put the files in one folder and sign the manifest with the release key
-   (kept outside the repository):
-   `python tools/fatimadesk_update_manifest.py sign --key <key.pem> --tag v1.5.3-fd2 --dir <folder>`
-3. Upload the files plus `fatimadesk-update.json` and `fatimadesk-update.json.sig`
-   to a GitHub release with that tag, and publish it as the latest release.
+1. Bump `RELEASE` in `src/fatimadesk_update.rs` and push.
+2. Run the *Fatima Desk release* workflow
+   (`.github/workflows/fatima-desk-release.yml`) with the tag, e.g.
+   `v1.5.3-fd3`. It builds every platform, signs the manifest with the
+   `FD_UPDATE_SIGNING_KEY` secret and creates a **draft** release.
+3. Write the release notes on the draft and publish it. Apps see the update
+   from then on.
+
+To sign by hand instead:
+`python tools/fatimadesk_update_manifest.py sign --key <key.pem> --tag <tag> --dir <folder>`.
 
 ### Code layout
 

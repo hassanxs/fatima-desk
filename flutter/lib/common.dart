@@ -63,6 +63,8 @@ final isWebOnLinux = isWebOnLinux_;
 final isWebOnMacOs = isWebOnMacOS_;
 var isMobile = isAndroid || isIOS;
 var version = '';
+// The Fatima Desk release, e.g. 1.5.3-fd3 (set on mobile at startup).
+var fdRelease = '';
 int androidVersion = 0;
 
 // Only used on Linux.

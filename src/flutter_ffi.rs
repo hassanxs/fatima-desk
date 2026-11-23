@@ -1168,7 +1168,8 @@ pub fn main_get_license() -> String {
 }
 
 pub fn main_get_version() -> String {
-    get_version()
+    // Shown in About: the Fatima Desk release (e.g. 1.5.3-fd3), not just 1.5.3.
+    crate::fatimadesk_update::RELEASE.to_owned()
 }
 
 pub fn main_get_fav() -> Vec<String> {
