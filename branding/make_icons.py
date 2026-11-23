@@ -71,14 +71,40 @@ def svg(tile=True, glyph=WHITE, cursor=AMBER):
     return '\n'.join(parts) + '\n'
 
 
+# Roboto Bold (Apache-2.0; Flutter ships it as material_fonts/roboto-bold.ttf,
+# or get it from Google Fonts). Only needed to regenerate the wordmark; needs
+# `pip install fonttools`.
+WORDMARK_FONT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts', 'Roboto-Bold.ttf')
+
+
+def _text_path(text, font_file, size, x, baseline):
+    """The text as one SVG path, so it looks the same without the font
+    installed (GitHub and browsers fall back to wider fonts and clip it).
+    Returns (path data, width)."""
+    from fontTools.pens.svgPathPen import SVGPathPen
+    from fontTools.pens.transformPen import TransformPen
+    from fontTools.ttLib import TTFont
+    font = TTFont(font_file)
+    glyphs, cmap = font.getGlyphSet(), font.getBestCmap()
+    scale = size / font['head'].unitsPerEm
+    pen, cursor = SVGPathPen(glyphs), 0.0
+    for ch in text:
+        name = cmap[ord(ch)]
+        glyphs[name].draw(TransformPen(pen, (scale, 0, 0, -scale, x + cursor, baseline)))
+        cursor += glyphs[name].width * scale
+    return pen.getCommands(), cursor
+
+
 def wordmark_svg():
-    """Icon plus the "Fatima Desk" name, for headers and about pages."""
+    """Icon plus the "Fatima Desk" name, for headers and about pages.
+    The name is drawn with Roboto Bold (Apache-2.0, branding/fonts)."""
     inner = svg().split('\n', 1)[1].rsplit('</svg>', 1)[0]
+    d, width = _text_path('Fatima Desk', WORDMARK_FONT, 460, 1180, 690)
+    w = int(1180 + width + 80)
     return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3600 1024" width="3600" height="1024">\n'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} 1024" width="{w}" height="1024">\n'
         f'{inner}'
-        f'<text x="1180" y="690" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" '
-        f'font-size="460" font-weight="700" fill="{_hex(VIOLET)}">Fatima Desk</text>\n'
+        f'<path fill="{_hex(VIOLET)}" d="{d}"/>\n'
         '</svg>\n')
 
 
