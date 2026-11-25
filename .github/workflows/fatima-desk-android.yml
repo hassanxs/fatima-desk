@@ -269,13 +269,23 @@ jobs:
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           export PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH
           sed -i "s/org.gradle.jvmargs=-Xmx1024M/org.gradle.jvmargs=-Xmx2g/g" ./flutter/android/gradle.properties
           pushd flutter
-          # Build number rises with every run so phones (and Firebase App
-          # Tester) see each build as an update; versionName stays VERSION.
-          flutter build apk --release --target-platform ${{ matrix.job.platform }} --split-per-abi             --build-name ${{ env.VERSION }} --build-number $((100 + ${{ github.run_number }}))
+          # Build number = number of commits on the branch, so every newer
+          # commit gives a higher versionCode whichever workflow builds it
+          # (a run number restarts in each calling workflow, which once gave a
+          # newer build a lower code and Android refused it as a downgrade).
+          # Read from the GitHub API because the checkout is shallow.
+          BUILD_NUMBER=$(curl -fsSI -H "Authorization: Bearer $GH_TOKEN" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/commits?sha=$GITHUB_SHA&per_page=1" \
+            | tr -d '\r' | sed -n 's/^link:.*[?&]page=\([0-9][0-9]*\)>; rel="last".*/\1/Ip')
+          case "$BUILD_NUMBER" in ''|*[!0-9]*) echo "::error::could not count commits"; exit 1;; esac
+          echo "Build number: $BUILD_NUMBER"
+          flutter build apk --release --target-platform ${{ matrix.job.platform }} --split-per-abi \
+            --build-name ${{ env.VERSION }} --build-number "$BUILD_NUMBER"
           popd
           mkdir -p out
           mv flutter/build/app/outputs/flutter-apk/app-${{ matrix.job.abi }}-release.apk \
@@ -334,6 +344,6 @@ jobs:
         run: |
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
-          [ -n "$NOTES" ] || NOTES="Fatima Desk ${VERSION} (build $((100 + ${{ github.run_number }})), ${GITHUB_SHA::9})"
+          [ -n "$NOTES" ] || NOTES="Fatima Desk ${VERSION} (${GITHUB_SHA::9})"
           npx --yes firebase-tools@13.29.1 appdistribution:distribute             "out/fatimadesk-${VERSION}-arm64-v8a.apk"             --app "$FIREBASE_APP_ID" --groups "$GROUPS" --release-notes "$NOTES"
           rm -f "$RUNNER_TEMP/firebase-sa.json"
