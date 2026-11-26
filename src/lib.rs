@@ -21,6 +21,7 @@ mod rendezvous_mediator;
 pub use self::rendezvous_mediator::*;
 #[cfg(not(any(target_os = "ios")))]
 mod fatimadesk_alias;
+mod fatimadesk_errors;
 mod fatimadesk_update;
 /// cbindgen:ignore
 pub mod common;

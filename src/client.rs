@@ -394,6 +394,10 @@ impl Client {
             Err(err) => {
                 let err_str = err.to_string();
                 if err_str.starts_with("Failed") {
+                    if let Some(msg) = crate::fatimadesk_errors::user_facing(&err_str) {
+                        log::warn!("{err_str}");
+                        bail!(msg);
+                    }
                     bail!(err_str + ": Please try later");
                 } else {
                     return Err(err);
